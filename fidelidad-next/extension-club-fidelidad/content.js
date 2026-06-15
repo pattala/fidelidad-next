@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V75 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V1.87 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V75: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V1.87: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -1038,6 +1038,9 @@ function showFidelidadPanel() {
         // Auto-show mystery box si esta encendido y val >= minAmount
         const mbxContainer = document.getElementById('cf-mystery-box-container');
         const mbCheckbox = document.getElementById('cf-generate-mystery-box');
+        
+        console.log(`[Club Fidelidad] Evaluando Caja Sorpresa. Amount: ${val}, Config:`, window._cfFullData?.config?.mysteryBox);
+        
         if (mbxContainer && window._cfFullData && window._cfFullData.config?.mysteryBox && window._cfFullData.config.mysteryBox.enabled) {
             if (val >= (window._cfFullData.config.mysteryBox.minAmount || 0)) {
                 mbxContainer.style.display = 'block';

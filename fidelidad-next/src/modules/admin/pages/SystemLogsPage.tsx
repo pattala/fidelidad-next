@@ -154,8 +154,7 @@ export const SystemLogsPage = () => {
                     // 1. Borrar si el timestamp de la base de datos está en el futuro (usado por engine-campaigns)
                     if (data.timestamp && data.timestamp.toDate) {
                         const logDate = data.timestamp.toDate();
-                        const logDateStr = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
-                        if (logDateStr > todayStr) {
+                        if (logDate > n) {
                             promises.push(deleteDoc(d.ref));
                             count++;
                             return; // Return temprano para no procesar el mismo documento dos veces

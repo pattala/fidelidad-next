@@ -89,7 +89,22 @@ export function isInsideTimeWindow(startConfig, endConfig, currentDate) {
         endH = Number(endConfig);
     }
 
-    const currentTotalM = currentDate.getHours() * 60 + currentDate.getMinutes();
+    // Usar Intl.DateTimeFormat para forzar el huso horario de Argentina y evitar problemas en Vercel (UTC)
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: "America/Argentina/Buenos_Aires",
+        hour: 'numeric',
+        minute: 'numeric',
+        hourCycle: 'h23'
+    });
+    
+    // El formato devuelto será tipo "21:30"
+    const formatted = formatter.format(currentDate);
+    const [hStr, mStr] = formatted.split(':');
+    
+    const currH = Number(hStr);
+    const currM = Number(mStr);
+    
+    const currentTotalM = currH * 60 + currM;
     const startTotalM = startH * 60 + startM;
     const endTotalM = endH * 60 + endM;
 

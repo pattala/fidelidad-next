@@ -205,11 +205,16 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                         setLoading(false);
                         moveToNextOrEnd('geolocation');
                     },
-                    async () => {
+                    async (error) => {
                         setLoading(false);
+                        if (error.code === error.PERMISSION_DENIED) {
+                            toast.error("Permiso bloqueado por tu navegador. Podés activarlo en tu perfil.");
+                        } else {
+                            toast.error("No pudimos obtener tu ubicación.");
+                        }
                         handleLater();
                     },
-                    { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
+                    { enableHighAccuracy: false, timeout: 30000, maximumAge: 60000 }
                 );
             } else {
                 setLoading(false);

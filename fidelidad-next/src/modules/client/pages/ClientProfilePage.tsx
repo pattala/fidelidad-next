@@ -90,7 +90,7 @@ export const ClientProfilePage = () => {
     const [isPetModalOpen, setIsPetModalOpen] = useState(false);
     const [editingPet, setEditingPet] = useState<Pet | null>(null);
     const [petFormData, setPetFormData] = useState<Partial<Pet>>({
-        name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true, enableFoodAlerts: true, enableLitterAlerts: true
+        name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, litterFrequencyDays: 15, receiveAlerts: true, enableFoodAlerts: true, enableLitterAlerts: true
     });
     const [petPhotoBase64, setPetPhotoBase64] = useState<string | null>(null);
     const [userPhotoBase64, setUserPhotoBase64] = useState<string | null>(null);
@@ -355,7 +355,7 @@ export const ClientProfilePage = () => {
             } else {
                 // simple check for geo
                 const p = await new Promise((resolve) => {
-                    navigator.geolocation.getCurrentPosition(() => resolve('granted'), () => resolve('denied'));
+                    navigator.geolocation.getCurrentPosition(() => resolve('granted'), () => resolve('denied'), { timeout: 30000 });
                 });
                 if (p !== 'granted') {
                     toast.error("No pudimos activar los beneficios locales");
@@ -1198,7 +1198,7 @@ export const ClientProfilePage = () => {
                                                 value={petFormData.frequencyDays}
                                                 onChange={(e) => setPetFormData({ ...petFormData, frequencyDays: Number(e.target.value) })}
                                                 className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
-                                                placeholder="Ej: 30"
+                                                placeholder="30"
                                                 min="1"
                                             />
                                             <div className="flex items-center gap-2 mt-2 ml-1">
@@ -1221,7 +1221,7 @@ export const ClientProfilePage = () => {
                                                     value={petFormData.litterFrequencyDays}
                                                     onChange={(e) => setPetFormData({ ...petFormData, litterFrequencyDays: Number(e.target.value) })}
                                                     className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
-                                                    placeholder="Ej: 15"
+                                                    placeholder="15"
                                                     min="1"
                                                 />
                                                 <div className="flex items-center gap-2 mt-2 ml-1">

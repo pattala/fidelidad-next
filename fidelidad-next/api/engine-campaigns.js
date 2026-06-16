@@ -165,12 +165,14 @@ export default async function handler(req, res) {
 
         // Identificación de Ejecutor para Auditoría
         let executorDetail = "SISTEMA (Auto)";
-        if (simulatedDateParam) {
-            executorDetail = `SIMULADOR (${simulatedDateParam})`;
-        } else if (triggerSourceParam === 'dashboard' || triggerSourceParam === 'sidebar_manual' || triggerSourceParam === 'manual') {
+        if (triggerSourceParam === 'dashboard' || triggerSourceParam === 'sidebar_manual' || triggerSourceParam === 'manual') {
             executorDetail = "SISTEMA (Panel)";
         } else if (triggerSourceParam === 'extension') {
             executorDetail = "SISTEMA (Extensión)";
+        }
+        
+        if (simulatedDateParam) {
+            executorDetail = `SIMULADOR (${executorDetail.replace('SISTEMA ', '')})`;
         }
 
         // V.1.6.4: Registrar SIEMPRE el inicio en la auditoría al comienzo

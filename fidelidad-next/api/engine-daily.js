@@ -78,17 +78,18 @@ export default async function handler(req, res) {
 
         // V.1.4.60: Identificación de Ejecutor Temprana para Auditoría
         let executorDetail = "SISTEMA (Auto)";
-        if (simulatedDateStr) {
-            executorDetail = `SIMULADOR (${formatDateToDisplay(simulatedDateStr)})`;
-        } else if (triggerSource === 'dashboard' || triggerSource === 'sidebar_manual') {
+        if (triggerSource === 'dashboard' || triggerSource === 'sidebar_manual') {
             executorDetail = "SISTEMA (Panel)";
             const authHeaderVal = req.headers["authorization"];
             if (authHeaderVal && authHeaderVal.startsWith("Bearer ")) {
                 try {
-                    const idToken = authHeaderVal.split("Bearer ")[1];
-                    const decodedToken = await admin.auth().verifyIdToken(idToken);
-                    if (decodedToken.email) executorDetail = `ADMIN (${decodedToken.email})`;
-                } catch (e) { }
+                    const token = authHeaderVal.split("Bearer ")[1];
+                    const decodedToken = await admin.auth().verifyIdToken(token);
+                    const userRecord = await admin.auth().getUser(decodedToken.uid);
+                    executorDetail = `Panel (${userRecord.displayName || userRecord.email || decodedToken.uid})`;
+                } catch (e) {
+                    console.error("Auth verify error in engine-daily:", e.message);
+                }
             }
         } else if (qstashHeader || triggerSource === 'qstash') {
             executorDetail = "SISTEMA (QStash)";
@@ -96,6 +97,10 @@ export default async function handler(req, res) {
             executorDetail = "SISTEMA (Extensión)";
         } else if (cronHeader) {
             executorDetail = "SISTEMA (Cron Vercel)";
+        }
+        
+        if (simulatedDateStr) {
+            executorDetail = `SIMULADOR (${executorDetail.replace('SISTEMA ', '')})`;
         }
 
         // V.1.4.60: Bypass de Seguridad para Gatillos Conocidos (Si no hay SECRET o viene de QStash/Extensión)

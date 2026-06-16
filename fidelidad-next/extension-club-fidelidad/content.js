@@ -584,7 +584,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                     btn.style.opacity = '1';
                     setTimeout(() => { btn.innerHTML = '📥 VOLVER A DESCARGAR'; btn.disabled = false; updateStorage(btn.dataset.id, 'dismissed'); }, 2000);
                     if (res && res.ok && res.csvContent) {
-                        const blob = new Blob(["\\uFEFF" + res.csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const blob = new Blob(["\uFEFF" + res.csvContent], { type: 'text/csv;charset=utf-8;' });
                         const link = document.createElement("a");
                         const url = URL.createObjectURL(blob);
                         link.setAttribute("href", url);

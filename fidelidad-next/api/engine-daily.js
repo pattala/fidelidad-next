@@ -1210,7 +1210,8 @@ export default async function handler(req, res) {
             processedAlerts: processedAlerts,
             config: config,
             referenceDate: todayStr,
-            skipped: skipSideEffects
+            skipped: false, // ¡CORRECCIÓN! Solo devolvemos skipped:true cuando está FUERA DE HORARIO (Early return).
+            skipSideEffects: skipSideEffects // Renombramos esta variable para auditoría sin romper la extensión
         });
 
     } catch (e) {

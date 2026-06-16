@@ -402,9 +402,15 @@ export default async function handler(req, res) {
         // (now y todayStr ya definidos arriba)
 
         let recordDate = trueNow;
+        let recordDateStr = todayStr;
         if (req.body?.date) {
-            if (req.body.date === todayStr) recordDate = trueNow;
-            else recordDate = new Date(req.body.date + 'T12:00:00Z');
+            if (req.body.date === todayStr) {
+                recordDate = trueNow;
+                recordDateStr = todayStr;
+            } else {
+                recordDate = new Date(req.body.date + 'T12:00:00Z');
+                recordDateStr = req.body.date;
+            }
         }
 
         // 5. Determinar Días de Validez (Escalas)
@@ -468,20 +474,18 @@ export default async function handler(req, res) {
 
                 // Mascota Food Logic (V.1.4.31) - Sincronizar ciclo desde compra
                 if (isPetFood && petIds.length > 0 && Array.isArray(cData.pets)) {
-                    const todayStr = recordDate.toISOString().split('T')[0];
                     clientUpdate.pets = cData.pets.map(p => {
                         if (petIds.includes(p.id)) {
-                            return { ...p, lastPurchaseDate: todayStr, lastFoodAlertDate: null };
+                            return { ...p, lastPurchaseDate: recordDateStr, lastFoodAlertDate: null };
                         }
                         return p;
                     });
                 }
                 
                 if (isPetLitter && petLitterIds && petLitterIds.length > 0 && Array.isArray(cData.pets)) {
-                    const todayStr = recordDate.toISOString().split('T')[0];
                       clientUpdate.pets = (clientUpdate.pets || cData.pets).map(p => {
                           if (petLitterIds.includes(p.id)) {
-                              return { ...p, lastLitterPurchaseDate: todayStr, lastLitterWhatsAppDate: null, lastLitterAlertDate: null };
+                              return { ...p, lastLitterPurchaseDate: recordDateStr, lastLitterWhatsAppDate: null, lastLitterAlertDate: null };
                           }
                           return p;
                       });

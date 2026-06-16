@@ -759,8 +759,8 @@ function detectAmount() {
         if (discountSum === 0) {
             document.querySelectorAll('td, span, div').forEach(el => {
                 const text = el.innerText.trim();
-                // Regex mejorado para capturar montos negativos o entre paréntesis
-                if (((text.startsWith('-') || (text.startsWith('(') && text.endsWith(')'))) && text.length > 1 && text.length < 20 && !el.children.length)) {
+                // Regex mejorado para capturar montos negativos o entre paréntesis con el símbolo $
+                if (((text.startsWith('-$') || (text.startsWith('($') && text.endsWith(')'))) && text.length > 2 && text.length < 20 && !el.children.length)) {
                     const numeric = Math.abs(parseFloat(text.replace(/[^0-9.,-]/g, '').replace(',', '.')));
                     if (!isNaN(numeric) && numeric > 1) { 
                          discountSum += numeric;
@@ -1271,7 +1271,18 @@ function showFidelidadPanel() {
 
                 // UI Update
                 const ptsBalance = c.accumulated_points ?? (c.points ?? (c.puntos ?? 0));
-                clientHeader.innerHTML = `Socio: ${selectedClient.name} <span style="margin-left: 8px; font-size: 11px; background: #d1fae5; color: #059669; padding: 2px 6px; border-radius: 12px; font-weight: bold; border: 1px solid #34d399;">⭐ ${ptsBalance} pts</span>`;
+                
+                // Add DNI and Socio number
+                const dniText = c.dni ? `DNI: ${c.dni}` : '';
+                const socioText = (c.socioNumber || c.numeroSocio) ? `Socio N°: ${c.socioNumber || c.numeroSocio}` : '';
+                const extraInfo = [dniText, socioText].filter(Boolean).join(' | ');
+                
+                clientHeader.innerHTML = `<div style="font-size: 14px; margin-bottom: 3px;">Socio: <strong>${selectedClient.name}</strong> <span style="margin-left: 8px; font-size: 11px; background: #d1fae5; color: #059669; padding: 2px 6px; border-radius: 12px; font-weight: bold; border: 1px solid #34d399;">⭐ ${ptsBalance} pts</span></div>${extraInfo ? `<div style="font-size: 12px; color: #a7f3d0; font-weight: normal;">${extraInfo}</div>` : ''}`;
+                
+                // Hide search container to save space
+                const searchContainer = document.querySelector('.fidelidad-search-container');
+                if (searchContainer) searchContainer.style.display = 'none';
+                
                 searchInput.value = selectedClient.name;
                 resultsDiv.style.display = 'none';
 

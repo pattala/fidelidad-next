@@ -781,9 +781,30 @@ export const ClientHomePage = () => {
         const startTimestamp = `${c.startTime}:00`;
         const endTimestamp = `${c.endTime}:00`;
 
-        // Instant switch at end time (strict comparison)
-        return curHHmm >= startTimestamp && curHHmm < endTimestamp;
+        if (curHHmm >= startTimestamp && curHHmm < endTimestamp) return true;
+
+        // Also return true if we are in the anticipation period
+        const leadMins = c.broadcastLeadMins || 0;
+        if (leadMins > 0) {
+            const startObj = new Date(now);
+            const [h, m] = c.startTime.split(':').map(Number);
+            startObj.setHours(h, m, 0, 0);
+            
+            const anticipationObj = new Date(startObj);
+            anticipationObj.setMinutes(anticipationObj.getMinutes() - leadMins);
+            
+            if (now >= anticipationObj && now < startObj) return true;
+        }
+
+        return false;
     });
+
+    const isFlashWaiting = activeFlash && (() => {
+        const now = currentTimeStore;
+        const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+        const startTimestamp = `${activeFlash.startTime}:00`;
+        return curHHmm < startTimestamp;
+    })();
 
     const pointsRatio = Number(config?.pointsPerPeso || 1);
     const moneyBase = Number(config?.pointsMoneyBase || 100);
@@ -1100,22 +1121,26 @@ export const ClientHomePage = () => {
 
             {/* FLASH OFFER BANNER (DYNAMIC MARKETING) */}
             {activeFlash && (
-                <div className="bg-gradient-to-r from-red-600 via-orange-500 to-red-600 p-6 rounded-[2rem] shadow-xl text-white relative overflow-hidden animate-pulse-slow border-4 border-white/20">
+                <div className={`p-6 rounded-[2rem] shadow-xl text-white relative overflow-hidden animate-pulse-slow border-4 border-white/20 ${isFlashWaiting ? 'bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600' : 'bg-gradient-to-r from-red-600 via-orange-500 to-red-600'}`}>
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <Clock size={80} />
                     </div>
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 mb-2">
                             <Sparkles size={20} className="animate-bounce" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em]">¡OFERTA FLASH ACTIVA!</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em]">
+                                {isFlashWaiting ? 'PREPARATE! OFERTA EN BREVE' : 'OFERTA FLASH ACTIVA!'}
+                            </span>
                         </div>
                         <h3 className="text-2xl font-black tracking-tight mb-1 uppercase italic">
                             {activeFlash.flashTitle || activeFlash.title || activeFlash.name}
                         </h3>
                         <div className="flex items-center gap-3 mt-3">
                             <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shrink-0">
-                                <p className="text-[8px] font-bold uppercase opacity-80 mb-0.5">Finaliza en:</p>
-                                <CountdownTimer targetTime={activeFlash.endTime as string} />
+                                <p className="text-[8px] font-bold uppercase opacity-80 mb-0.5">
+                                    {isFlashWaiting ? 'Empieza en:' : 'Finaliza en:'}
+                                </p>
+                                <CountdownTimer targetTime={isFlashWaiting ? activeFlash.startTime as string : activeFlash.endTime as string} />
                             </div>
                             <div className="flex flex-col min-w-0">
                                 <span className="text-xl font-black leading-none truncate">

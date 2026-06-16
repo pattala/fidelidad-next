@@ -664,7 +664,7 @@ async function refreshAlertCounts() {
                         if (exp && new Date(exp) < new Date()) return false;
                         return true;
                     });
-                    const filteredCampaigns = (data.campaigns?.list || []).filter(c => getStatus(c.alertId) === 'pending');
+                    const filteredCampaigns = (data.campaigns || []).filter(c => getStatus(c.alertId) === 'pending');
                     const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length + filteredRedemptions.length + filteredAssignments.length + filteredMysteryBoxes.length + filteredCampaigns.length;
 
                     const processedData = {
@@ -674,7 +674,8 @@ async function refreshAlertCounts() {
                         expirations: { list: eList },
                         petAlerts: { list: pList },
                         redemptions: { list: rList },
-                        pointsAssignments: { list: aList }
+                        pointsAssignments: { list: aList },
+                        campaigns: { list: data.campaigns || [] }
                     };
 
                     showGlobalAlert(processedData, config);

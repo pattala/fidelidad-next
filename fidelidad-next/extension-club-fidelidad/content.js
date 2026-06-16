@@ -874,7 +874,10 @@ function showFidelidadPanel() {
                 <h1 id="cf-main-title">Sumar Puntos <span style="font-size: 10px; color: #e5e7eb; font-weight: normal; margin-left: 8px; opacity: 0.9;">(${config.appName || config.apiUrl || 'Configurando...'})</span></h1>
                 <span id="cf-client-name-header" style="font-size: 10px; opacity: 0.8; display: block;">Seleccione un cliente</span>
             </div>
-            <span class="fidelidad-close" id="fidelidad-close">×</span>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <span id="fidelidad-minimize" style="cursor: pointer; font-size: 20px; font-weight: bold; line-height: 12px; padding-bottom: 8px; opacity: 0.8; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8" title="Minimizar">_</span>
+                <span class="fidelidad-close" id="fidelidad-close" title="Cerrar y Resetear">&times;</span>
+            </div>
         </div>
         <div class="fidelidad-body">
             <!-- BUSCADOR PREDICTIVO -->
@@ -985,7 +988,7 @@ function showFidelidadPanel() {
     const header = panel.querySelector('.fidelidad-header');
 
     header.onmousedown = (e) => {
-        if (e.target.id === 'fidelidad-close') return;
+        if (e.target.id === 'fidelidad-close' || e.target.id === 'fidelidad-minimize') return;
         isDragging = true;
         offset.x = e.clientX - panel.offsetLeft;
         offset.y = e.clientY - panel.offsetTop;
@@ -1005,6 +1008,34 @@ function showFidelidadPanel() {
         isDragging = false;
         header.style.cursor = 'move';
     });
+
+    // Eventos UI del Panel
+    document.getElementById('fidelidad-close').onclick = (e) => {
+        e.stopPropagation();
+        const panel = document.getElementById('fidelidad-panel');
+        if (panel) panel.remove();
+        window.removeEventListener('keydown', killEvent, true);
+        // Reiniciar todo
+        selectedClient = null;
+        processedAmount = detectedAmount; // Evitar que el observer lo reviva al instante
+        if (document.getElementById('cf-v35-bubble')) document.getElementById('cf-v35-bubble').style.display = 'flex';
+    };
+
+    let isMinimized = false;
+    document.getElementById('fidelidad-minimize').onclick = (e) => {
+        e.stopPropagation();
+        isMinimized = !isMinimized;
+        const body = document.querySelector('.fidelidad-body');
+        if (isMinimized) {
+            body.style.display = 'none';
+            document.getElementById('fidelidad-minimize').innerText = '□';
+            document.getElementById('fidelidad-minimize').title = 'Maximizar';
+        } else {
+            body.style.display = 'block';
+            document.getElementById('fidelidad-minimize').innerText = '_';
+            document.getElementById('fidelidad-minimize').title = 'Minimizar';
+        }
+    };
 
     // ELEMENTOS
     const searchInput = document.getElementById('fidelidad-search');
@@ -1178,27 +1209,6 @@ function showFidelidadPanel() {
     window.addEventListener('keydown', killEvent, true);
     window.addEventListener('keyup', killEvent, true);
     window.addEventListener('keypress', killEvent, true);
-
-    document.getElementById('fidelidad-close').onclick = () => {
-        if (window._cfStandaloneMode) {
-            panel.remove();
-            window._cfStandaloneMode = false;
-            processedAmount = null;
-            return;
-        }
-        // En lugar de remover (y pelear con el observer), MINIMIZAMOS el panel
-        const body = panel.querySelector('.fidelidad-body');
-        if (body.style.display === 'none') {
-            body.style.display = 'block';
-            document.getElementById('fidelidad-close').innerText = '×';
-        } else {
-            body.style.display = 'none';
-            document.getElementById('fidelidad-close').innerText = '+';
-            if (document.activeElement === searchInput) {
-                searchInput.blur();
-            }
-        }
-    };
 
     // FOCO PERSISTENTE SOLO EN EL SEARCH INICIAL
     setTimeout(() => searchInput.focus(), 300);

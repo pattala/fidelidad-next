@@ -26,9 +26,9 @@ export async function getEffectiveDate(db, simulatedDateParam = null) {
         console.error("[TimeUtils] Error leyendo config:", e.message);
     }
 
-    // 3. Por defecto: Fecha real. Usamos new Date() puro para no alterar el epoch absoluto.
-    // El desfasaje horario se maneja visualmente en el frontend.
-    return new Date();
+    // 3. Por defecto: Fecha real (Forzada a Argentina para evitar desfasaje en la nube)
+    const argentinaDate = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));
+    return argentinaDate;
 }
 
 /**

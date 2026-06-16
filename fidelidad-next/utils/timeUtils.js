@@ -26,9 +26,9 @@ export async function getEffectiveDate(db, simulatedDateParam = null) {
         console.error("[TimeUtils] Error leyendo config:", e.message);
     }
 
-    // 3. Por defecto: Fecha real (Forzada a Argentina para evitar desfasaje en la nube)
-    const argentinaDate = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));
-    return argentinaDate;
+    // 3. Por defecto: Fecha real. Retornamos el objeto Date directamente para no alterar el "epoch" absoluto.
+    // El desfasaje de las 3 horas para mostrar en pantalla se hace automáticamente en el frontend (navegador del usuario).
+    return new Date();
 }
 
 /**

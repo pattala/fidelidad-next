@@ -1000,7 +1000,7 @@ export default async function handler(req, res) {
 
         // 7. DISPARAR MOTOR DE CAMPAÑAS (Sincronizado)
         const baseUrl = process.env.PUBLIC_BASE_URL || `https://${req.headers.host}`;
-        fetch(`${baseUrl}/api/engine-campaigns?trigger=engine-daily&isManual=${skipDuplicityCheck}`, {
+        fetch(`${baseUrl}/api/engine-campaigns?trigger=${triggerSource}&isManual=${skipDuplicityCheck}`, {
             method: 'POST',
             headers: { 
                 'x-api-key': process.env.API_SECRET_KEY || '',

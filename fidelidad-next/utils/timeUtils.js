@@ -5,9 +5,15 @@
 export async function getEffectiveDate(db, simulatedDateParam = null) {
     const today = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));
     
-    // 1. Prioridad: Parámetro explícito en la request (body o query)
+    // 1. Primera prioridad: Parámetro explícito de fecha simulada (query string, body, etc.)
     if (simulatedDateParam) {
-        // Soporta YYYY-MM-DD o ISOString
+        if (simulatedDateParam.includes('T') && simulatedDateParam.endsWith('Z')) {
+            // Si es un string ISO completo, respetamos la hora exacta
+            const parsed = new Date(simulatedDateParam);
+            if (!isNaN(parsed.getTime())) return parsed;
+        }
+        // Si es solo "YYYY-MM-DD" o formato simple
+        // Le forzamos el T12:00:00 para evitar que el navegador/servidor lo tire al día anterior
         const dateStr = simulatedDateParam.includes('T') ? simulatedDateParam.split('T')[0] : simulatedDateParam;
         return new Date(dateStr + 'T12:00:00');
     }

@@ -75,7 +75,7 @@ export const SystemLogsPage = () => {
                     'x-executor-role': (auth.currentUser as any)?.reloadUserInfo?.customAttributes?.includes('editor') ? 'editor' : 'admin'
                 },
                 body: JSON.stringify({
-                    simulatedDate: TimeService.now().toLocaleDateString('en-CA'),
+                    simulatedDate: TimeService.now().toISOString(),
                     isManual: true,
                     ignoreDeduplication: ignoreDeduplication
                 })

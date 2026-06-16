@@ -494,18 +494,20 @@ export default async function handler(req, res) {
                                     status: 'success',
                                     summary: `Email enviado a ${name} (${email}): "${title}"`,
                                     details: [{ userId, userName: name, to: email, subject: title, messageId: sendInfo.messageId, campName: camp.name }],
-                                    executor: 'system'
+                                    executor: executorDetail,
+                                    simulated: !!simulatedDateParam
                                 });
                             } catch (e) {
                                 console.error(`[Engine-Campaigns] Campaign email error for ${email}:`, e.message);
                                 // Auditoría de error
                                 return db.collection('audit_logs').add({
                                     timestamp: admin.firestore.Timestamp.fromDate(now),
-                                    type: 'campaign_email_error',
+                                    type: 'campaign_email_failed',
                                     status: 'failed',
                                     summary: `Error al enviar email a ${name} (${email})`,
                                     details: [{ email, error: e.message, campName: camp.name }],
-                                    executor: 'system'
+                                    executor: executorDetail,
+                                    simulated: !!simulatedDateParam
                                 });
                             }
                         });
@@ -544,19 +546,21 @@ export default async function handler(req, res) {
                         timestamp: admin.firestore.Timestamp.fromDate(now),
                         type: 'campaign_broadcast',
                         status: 'success',
-                        summary: `Difusi�n autom�tica: ${camp.name}`,
+                        summary: `Difusión automática: ${camp.name}`,
                         details: [{ campId, notifiedCount: fcmTokens.length, userCount: userDocs.length, affectedUsers: affected, title, trigger: req.query.trigger || 'auto', action: 'campaign_broadcasted', campName: camp.name, timestamp: now.toISOString() }],
-                        executor: 'system'
+                        executor: executorDetail,
+                        simulated: !!simulatedDateParam
                     });
                     
-                    // Alerta espec�fica para generar el CSV en el Dashboard
+                    // Alerta específica para generar el CSV en el Dashboard
                     await db.collection('audit_logs').add({
                         timestamp: admin.firestore.Timestamp.fromDate(now),
                         type: 'campaign_whatsapp_csv',
                         status: 'success',
-                        summary: `Generaci�n de CSV para WhatsApp pendiente: ${camp.name}`,
+                        summary: `Generación de CSV para WhatsApp pendiente: ${camp.name}`,
                         details: [{ action: 'csv_downloaded', campaignId: campId }],
-                        executor: 'system'
+                        executor: executorDetail,
+                        simulated: !!simulatedDateParam
                     });
 
                 } catch (err) {

@@ -268,13 +268,13 @@ export default async function handler(req, res) {
                         const msg = template.replace(/{nombre}/g, (userData.nombre || userData.name || '').split(' ')[0]).replace(/{puntos}/g, birthdayPoints.toString());
                         const title = "¡Feliz Cumpleaños! 🎂";
 
-                        const evChannelsExp = config.messaging?.eventConfigs?.expirationWarning?.channels || ['push', 'email'];
-                    const canPushExp = config.messaging?.pushEnabled !== false && evChannelsExp.includes('push');
-                    const canEmailExp = config.messaging?.emailEnabled !== false && evChannelsExp.includes('email');
-                    const canInboxExp = config.messaging?.inboxEnabled !== false;
+                        const evChannelsBday = config.messaging?.eventConfigs?.birthday?.channels || ['push', 'email'];
+                    const canPushBday = config.messaging?.pushEnabled !== false && evChannelsBday.includes('push');
+                    const canEmailBday = config.messaging?.emailEnabled !== false && evChannelsBday.includes('email');
+                    const canInboxBday = config.messaging?.inboxEnabled !== false;
 
                     // 1. PWA PUSH
-                    if (userData.fcmTokens?.length && canPushExp) {
+                    if (userData.fcmTokens?.length && canPushBday) {
                             const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                             const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                             await app.messaging().sendEachForMulticast({
@@ -473,13 +473,13 @@ export default async function handler(req, res) {
                         .replace(/{puntos}/g, nextAmt.toString())
                         .replace(/{fecha}/g, dateStr);
 
-                    const evChannelsBday = config.messaging?.eventConfigs?.birthday?.channels || ['push', 'email'];
-                          const canPushBday = config.messaging?.pushEnabled !== false && evChannelsBday.includes('push');
-                          const canEmailBday = config.messaging?.emailEnabled !== false && evChannelsBday.includes('email');
-                          const canInboxBday = config.messaging?.inboxEnabled !== false;
+                    const evChannelsExp = config.messaging?.eventConfigs?.expirationWarning?.channels || ['push', 'email'];
+                          const canPushExp = config.messaging?.pushEnabled !== false && evChannelsExp.includes('push');
+                          const canEmailExp = config.messaging?.emailEnabled !== false && evChannelsExp.includes('email');
+                          const canInboxExp = config.messaging?.inboxEnabled !== false;
                           
                           // 1. PWA PUSH
-                          if (userData.fcmTokens?.length && canPushBday) {
+                          if (userData.fcmTokens?.length && canPushExp) {
                         const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                         const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                         await app.messaging().sendEachForMulticast({

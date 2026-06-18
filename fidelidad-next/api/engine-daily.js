@@ -756,6 +756,10 @@ export default async function handler(req, res) {
                                             }
                                         }
 
+                                        const canInboxLitter = config.messaging?.inboxEnabled !== false;
+                                        const evChannelsLitter = config.messaging?.eventConfigs?.petLitterAlert?.channels || ['push', 'email', 'whatsapp'];
+                                        const canEmailLitter = config.messaging?.emailEnabled !== false && evChannelsLitter.includes('email');
+
                                         if (canInboxLitter) {
                                             await userDoc.ref.collection('inbox').add({
                                                 title: "🐾 Aviso de Piedras Sanitarias", body: msg, url: "/perfil", type: "pet_litter_alert",

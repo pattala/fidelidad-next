@@ -902,7 +902,7 @@ export const MetricsPage = () => {
                     </div>
 
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden flex flex-col h-full">
                             <div className="p-6 border-b border-orange-50 bg-orange-50/30">
                                 <h3 className="font-bold text-gray-800 flex items-center gap-2"><Sparkles size={18} className="text-orange-500" /> Ranking de Referidores</h3>
@@ -923,7 +923,10 @@ export const MetricsPage = () => {
                             </table>
                         </div>
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
-                            <div className="p-6 border-b border-gray-100 bg-gray-50/50"><h3 className="font-bold text-gray-800 flex items-center gap-2"><Users size={18} className="text-purple-500" /> Clientes con Mayor Saldo</h3></div>
+                            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2"><Users size={18} className="text-purple-500" /> Clientes con Mayor Saldo</h3>
+                                <p className="text-xs text-gray-500 font-medium mt-1">Saldo histórico actual</p>
+                            </div>
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-gray-50 text-gray-500 font-semibold"><tr><th className="p-4 pl-6">Cliente</th><th className="p-4 text-right pr-6">Saldo Puntos</th></tr></thead>
                                 <tbody className="divide-y divide-gray-50">
@@ -933,6 +936,27 @@ export const MetricsPage = () => {
                                             <td className="p-4 text-right pr-6 font-bold text-purple-600">{user.points?.toLocaleString() || 0}</td>
                                         </tr>
                                     ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden flex flex-col h-full">
+                            <div className="p-6 border-b border-emerald-50 bg-emerald-50/30">
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2"><DollarSign size={18} className="text-emerald-500" /> Clientes que más gastan</h3>
+                                <p className="text-xs text-emerald-600 font-medium mt-1">
+                                    {timeRange === 'today' ? 'Hoy' : timeRange === '30_days' ? 'Últimos 30 días' : timeRange === '6_months' ? 'Últimos 6 meses' : timeRange === 'total' ? 'Histórico total' : 'Período personalizado'}
+                                </p>
+                            </div>
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-emerald-50/50 text-gray-500 font-semibold"><tr><th className="p-4 pl-6">Cliente</th><th className="p-4 text-right pr-6">Gastado ($)</th></tr></thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {topSpenders.length === 0 ? (<tr><td colSpan={2} className="p-8 text-center text-gray-400 italic">No hay registros de compras</td></tr>) : (
+                                        topSpenders.map((user: any, i: number) => (
+                                            <tr key={user.id} className="hover:bg-emerald-50/30 transition">
+                                                <td className="p-4 pl-6 font-medium text-gray-700 flex items-center gap-3"><span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>{i + 1}</span><div className="flex flex-col"><span>{user.name}</span><span className="text-[10px] text-gray-400">{user.socioNumber ? `#${user.socioNumber}` : (user.dni ? `DNI: ${user.dni}` : '')}</span></div></td>
+                                                <td className="p-4 text-right pr-6 font-bold text-emerald-600">${Math.round(user.total || 0).toLocaleString('es-AR')}</td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>

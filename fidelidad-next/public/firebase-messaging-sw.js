@@ -20,7 +20,8 @@ messaging.onBackgroundMessage((payload) => {
   const notificationOptions = {
     body: payload.notification?.body || 'Tienes una novedad',
     icon: '/pwa-192x192.png',
-    data: { url: payload.data?.url || '/' }
+    data: { url: payload.data?.url || '/' },
+    tag: payload.data?.tag || payload.notification?.tag || Date.now().toString()
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

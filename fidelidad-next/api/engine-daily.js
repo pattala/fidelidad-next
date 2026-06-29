@@ -280,13 +280,14 @@ export default async function handler(req, res) {
                             await app.messaging().sendEachForMulticast({
                                 tokens: userData.fcmTokens,
                                 notification: { title, body: msg },
-                                data: { title, body: msg, url: `${PWA_URL}/perfil`, icon: iconUrl },
+                                data: { title, body: msg, url: `${PWA_URL}/perfil`, icon: iconUrl, tag: "birthday" },
                                 android: { 
                                     priority: "high",
-                                    notification: { sound: "default", channelId: "fidelidad-notif-channel" }
+                                    collapseKey: "birthday",
+                                    notification: { sound: "default", channelId: "fidelidad-notif-channel", tag: "birthday" }
                                 },
                                 webpush: {
-                                    headers: { Urgent: "high" },
+                                    headers: { Urgent: "high", Topic: "birthday" },
                                     fcmOptions: { link: `${PWA_URL}/perfil` }
                                 }
                             }).catch(() => {});
@@ -485,13 +486,14 @@ export default async function handler(req, res) {
                         await app.messaging().sendEachForMulticast({
                             tokens: userData.fcmTokens,
                             notification: { title, body: msg },
-                            data: { title, body: msg, url: `${PWA_URL}/perfil`, icon: iconUrl },
+                            data: { title, body: msg, url: `${PWA_URL}/perfil`, icon: iconUrl, tag: "expiration" },
                             android: { 
                                 priority: "high",
-                                notification: { sound: "default", channelId: "fidelidad-notif-channel" }
+                                collapseKey: "expiration",
+                                notification: { sound: "default", channelId: "fidelidad-notif-channel", tag: "expiration" }
                             },
                             webpush: {
-                                headers: { Urgent: "high" },
+                                headers: { Urgent: "high", Topic: "expiration" },
                                 fcmOptions: { link: `${PWA_URL}/perfil` }
                             }
                         }).catch((err) => { console.error("Push Exp Error:", err); });
@@ -646,13 +648,14 @@ export default async function handler(req, res) {
                                         const response = await app.messaging().sendEachForMulticast({
                                             tokens: cleanTokens,
                                             notification: { title, body: msg },
-                                            data: { title, body: msg, url: `${PWA_URL}/perfil`, icon: iconUrl },
+                                            data: { title, body: msg, url: `${PWA_URL}/perfil`, icon: iconUrl, tag: `pet-food-${(pet.name||'').replace(/\s+/g, '')}` },
                                             android: { 
                                                 priority: "high",
-                                                notification: { sound: "default", channelId: "fidelidad-notif-channel" }
+                                                collapseKey: `pet-food-${(pet.name||'').replace(/\s+/g, '')}`,
+                                                notification: { sound: "default", channelId: "fidelidad-notif-channel", tag: `pet-food-${(pet.name||'').replace(/\s+/g, '')}` }
                                             },
                                             webpush: {
-                                                headers: { Urgent: "high" },
+                                                headers: { Urgent: "high", Topic: `pet-food-${(pet.name||'').replace(/\s+/g, '')}` },
                                                 fcmOptions: { link: `${PWA_URL}/perfil` }
                                             }
                                         });
@@ -747,9 +750,9 @@ export default async function handler(req, res) {
                                                 const response = await app.messaging().sendEachForMulticast({
                                                     tokens: cleanTokens,
                                                     notification: { title, body: msg },
-                                                    data: { title, body: msg, url: `${PWA_URL}/perfil`, icon: iconUrl },
-                                                    android: { priority: "high", notification: { sound: "default", channelId: "fidelidad-notif-channel" } },
-                                                    webpush: { headers: { Urgent: "high" }, fcmOptions: { link: `${PWA_URL}/perfil` } }
+                                                    data: { title, body: msg, url: `${PWA_URL}/perfil`, icon: iconUrl, tag: `pet-litter-${(pet.name||'').replace(/\s+/g, '')}` },
+                                                    android: { priority: "high", collapseKey: `pet-litter-${(pet.name||'').replace(/\s+/g, '')}`, notification: { sound: "default", channelId: "fidelidad-notif-channel", tag: `pet-litter-${(pet.name||'').replace(/\s+/g, '')}` } },
+                                                    webpush: { headers: { Urgent: "high", Topic: `pet-litter-${(pet.name||'').replace(/\s+/g, '')}` }, fcmOptions: { link: `${PWA_URL}/perfil` } }
                                                 });
                                                 results.details.push({ action: "push_sent", userId: userDoc.id, success: response.successCount });
                                             } catch (pushErr) {

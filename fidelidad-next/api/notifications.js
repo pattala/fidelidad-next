@@ -180,17 +180,20 @@ export async function sendNotificationInternal({ db, title, body: msgBody, token
                 ...data,
                 icon: iconUrl,
                 badge: iconUrl,
-                image: extraData?.image ? getAbsoluteUrl(extraData.image, PWA_URL) : ""
+                image: extraData?.image ? getAbsoluteUrl(extraData.image, PWA_URL) : "",
+                tag: data.tag || "campaign"
             },
             android: { 
                 priority: "high",
+                collapseKey: data.tag || "campaign",
                 notification: {
                     sound: "default",
-                    channelId: "fidelidad-notif-channel"
+                    channelId: "fidelidad-notif-channel",
+                    tag: data.tag || "campaign"
                 }
             },
             webpush: {
-                headers: { Urgent: "high" },
+                headers: { Urgent: "high", Topic: data.tag || "campaign" },
                 fcmOptions: { link: data.url || "/inbox" }
             }
         };

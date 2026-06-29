@@ -517,6 +517,7 @@ export default async function handler(req, res) {
                     // V.1.4.81: Guardar tracking por fecha específica de vencimiento
                     const updatedWarningDates = { ...warningDates, [nextExpDate]: todayStr };
                     await doc.ref.update({ lastExpirationWarningDates: updatedWarningDates });
+                    results.expirations++;
                 }
 
                 let auditNextAmt = userData.nextExpirationAmount || userData.points || 0;

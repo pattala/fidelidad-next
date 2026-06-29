@@ -608,7 +608,7 @@ export default async function handler(req, res) {
                         const alreadyAlerted = lastAlertSent && lastAlertSent >= lastPurchase;
 
                         if (isAlertWindow) {
-                            const shouldSendPetAlert = (!alreadyAlerted) && (!alreadyExecuted || skipDuplicityCheck);
+                            const shouldSendPetAlert = (!alreadyAlerted || skipDuplicityCheck) && (!alreadyExecuted || skipDuplicityCheck);
                             if (shouldSendPetAlert) {
                                 const userName = (userData.nombre || userData.name || '').split(' ')[0];
                                 const template = config.messaging?.templates?.petFoodAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su {marca}.";
@@ -727,7 +727,7 @@ export default async function handler(req, res) {
                                 const alreadyLitterAlerted = lastLitterAlertSent && lastLitterAlertSent >= lastLitterPurchase;
 
                                 if (isLitterAlertWindow) {
-                                    const shouldSendLitterAlert = (!alreadyLitterAlerted) && (!alreadyExecuted || skipDuplicityCheck);
+                                    const shouldSendLitterAlert = (!alreadyLitterAlerted || skipDuplicityCheck) && (!alreadyExecuted || skipDuplicityCheck);
                                     if (shouldSendLitterAlert) {
                                         const userName = (userData.nombre || userData.name || '').split(' ')[0];
                                         const template = config.messaging?.templates?.whatsappPetLitter || config.messaging?.templates?.petLitterAlert_whatsapp || config.messaging?.templates?.petLitterAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le deben estar terminando sus piedras sanitarias. ¡Te esperamos para reponerlas! 💨";

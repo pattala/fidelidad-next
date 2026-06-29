@@ -485,16 +485,16 @@ export default async function handler(req, res) {
                         await app.messaging().sendEachForMulticast({
                             tokens: userData.fcmTokens,
                             notification: { title, body: msg },
-                            data: { title, body: msg, url: "/perfil", icon: iconUrl },
+                            data: { title, body: msg, url: `${PWA_URL}/perfil`, icon: iconUrl },
                             android: { 
                                 priority: "high",
                                 notification: { sound: "default", channelId: "fidelidad-notif-channel" }
                             },
                             webpush: {
                                 headers: { Urgent: "high" },
-                                fcmOptions: { link: "/perfil" }
+                                fcmOptions: { link: `${PWA_URL}/perfil` }
                             }
-                        }).catch(() => {});
+                        }).catch((err) => { console.error("Push Exp Error:", err); });
                     }
 
                     // 2. INBOX

@@ -828,7 +828,7 @@ function showFidelidadPanel() {
     if (document.getElementById('fidelidad-panel')) {
         const amountEl = document.getElementById('cf-display-amount');
         const inputMonto = document.getElementById('cf-input-amount');
-        const baseActual = Math.max(0, detectedAmount - detectedDiscounts);
+        const baseActual = detectedAmount;
 
         if (amountEl) {
             amountEl.innerHTML = `$ ${detectedAmount.toLocaleString('es-AR')} ${detectedDiscounts > 0 ? `<span style="font-size: 10px; color: #10b981; font-weight: normal; margin-left:8px;">(Incluye $${detectedDiscounts.toLocaleString('es-AR')} en desc.)</span>` : ''}`;
@@ -901,7 +901,7 @@ function showFidelidadPanel() {
                         <label id="cf-amount-label" class="cf-label font-bold">Monto de la Compra ($)</label>
                         <div class="cf-input-group">
                             <span id="cf-currency-symbol" class="cf-addon">$</span>
-                            <input type="number" id="cf-input-amount" class="fidelidad-input cf-input-big" value="${Math.max(0, detectedAmount - detectedDiscounts)}" data-auto-filled="true">
+                            <input type="number" id="cf-input-amount" class="fidelidad-input cf-input-big" value="${detectedAmount}" data-auto-filled="true">
                         </div>
                         <div id="cf-display-amount" style="font-size: 11px; margin-top: 4px; color: #6b7280;">
                             $ ${detectedAmount.toLocaleString('es-AR')} ${detectedDiscounts > 0 ? `<span style="color:#10b981; font-weight: bold;">(Incluye $${detectedDiscounts.toLocaleString('es-AR')} en desc.)</span>` : ''}
@@ -1119,9 +1119,12 @@ function showFidelidadPanel() {
         }
 
         let ptsBase = 0;
+        let effectiveVal = val;
         if (isPesos) {
             const curAcc = selectedClient.accumulated_balance || 0;
-            let effectiveVal = val;
+            if (detectedDiscounts > 0) {
+                effectiveVal = Math.max(0, val - detectedDiscounts);
+            }
             const total = effectiveVal + curAcc;
             ptsBase = Math.floor((total / (apiRatios.base || 100)) * (apiRatios.perPeso || 1));
         } else {
@@ -1159,7 +1162,7 @@ function showFidelidadPanel() {
         previewContainer.innerHTML = `
             <div style="font-weight: bold; color: #374151;">\u2728 Se asignarán: <strong style="color: #059669;">${totalFinal} puntos</strong></div>
             <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">
-                Cálculo: $${val.toLocaleString('es-AR')} / ${apiRatios.base} x ${apiRatios.perPeso}
+                Cálculo: $${effectiveVal.toLocaleString('es-AR')} / ${apiRatios.base} x ${apiRatios.perPeso}
                 ${(bonus - bonusK) > 0 ? ` + ${bonus - bonusK} pts promos` : ''}
                 ${bonusK > 0 ? ` + ${bonusK} pts Bono Descuento (K)` : ''}
             </div>
@@ -1563,7 +1566,8 @@ function showFidelidadPanel() {
                 headers: { 'x-api-key': config.apiKey },
                 body: {
                     uid: selectedClient.id,
-                    amount: amount,
+                    amount: isPesos ? Math.max(0, amount - detectedDiscounts) : amount,
+                    moneySpent: amount,
                     reason: isPesos ? 'external_integration' : 'manual',
                     concept: concept,
                     date: date,

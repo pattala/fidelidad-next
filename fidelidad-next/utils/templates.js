@@ -79,19 +79,36 @@ export async function resolveTemplate(db, templateId, channel) {
         }
     }
 
+    const DEFAULT_FALLBACK_TEMPLATES = {
+        welcome: "¡Bienvenido a {siteName}, {nombre}! 🎉 Ya tienes {puntos} puntos de regalo. 🎁",
+        pointsAdded: "¡Hola {nombre}! 🎉 Sumaste {puntos} puntos. Tu nuevo saldo es {saldo} 🪙",
+        redemption: "¡Felicidades {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}. ¡Que lo disfrutes! 🏷️",
+        campaign: "📢 ¡Nueva Campaña!: {titulo}. {descripcion}. ¡No te la pierdas! 🚀",
+        birthday: "¡Feliz cumpleaños, {nombre}! 🎂🎉 Te regalamos {puntos} puntos para que los disfrutes. ¡Que pases un gran día! 🎁",
+        expirationWarning: "¡Hola {nombre}! ⏰ Tenés {puntos} puntos para gastar antes del {fecha}. ¡Canjealos hoy por un premio antes de que se venzan! 🎁🏃",
+        referralReward: "¡Hola {nombre}! 🎉 Ganaste {puntos} puntos porque tu amigo {amigo} comenzó a usar {siteName}. ¡Gracias por recomendarnos! 🎁",
+        petFoodAlert: "¡Hola {nombre}! 🐾 A {mascota} le queda poco alimento {marca}. ¡Vení a buscar su bolsa y seguí sumando puntos! 🐶🛒",
+        petLitterAlert: "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le deben estar terminando sus piedras sanitarias. ¡Te esperamos para reponerlas! 💨"
+    };
+
     // 2) Configuración General (Lo que edita el usuario en el Panel de Control)
     try {
         const configSnap = await db.collection('config').doc('general').get();
         if (configSnap.exists) {
             const config = configSnap.data();
-            const templateText = config.messaging?.templates?.[mappedId];
+            const templateText = config.messaging?.templates?.[mappedId] || DEFAULT_FALLBACK_TEMPLATES[mappedId];
             if (templateText) {
                 // Títulos por defecto basados en el ID
                 const defaultTitles = {
                     welcome: '¡Bienvenido! 👋',
                     pointsAdded: '¡Puntos Sumados! 💰',
                     redemption: '¡Canje Exitoso! 🎁',
-                    campaign: config.siteName || 'Notificación'
+                    campaign: config.siteName || 'Notificación',
+                    birthday: '¡Feliz Cumpleaños! 🎂',
+                    expirationWarning: '¡Tus puntos vencen pronto! ⏰',
+                    referralReward: '¡Premio por Referido! 🎁',
+                    petFoodAlert: '🐾 Reposición de Alimento',
+                    petLitterAlert: '🐾 Reposición de Piedras'
                 };
                 return {
                     titulo: defaultTitles[mappedId] || 'Notificación',

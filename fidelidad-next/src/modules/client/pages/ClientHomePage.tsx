@@ -35,6 +35,15 @@ import { useClientAuth } from '../contexts/ClientAuthContext';
 import { usePWAInstall } from '../../../hooks/usePWAInstall';
 import { PWAInstallAdvantageModal } from '../components/PWAInstallAdvantageModal';
 import { getDeviceContext, getPushStrategy } from '../../../utils/deviceUtils';
+const parseTimestamp = (ts: any): Date | null => {
+    if (!ts) return null;
+    if (typeof ts.toDate === 'function') return ts.toDate();
+    if (ts.seconds !== undefined) return new Date(ts.seconds * 1000 + (ts.nanoseconds || 0) / 1000000);
+    const d = new Date(ts);
+    if (!isNaN(d.getTime())) return d;
+    return null;
+};
+
 const RecentActivityList = ({ uid }: { uid?: string }) => {
     const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -145,20 +154,20 @@ export const ClientHomePage = () => {
                 where('status', '==', 'pending')
             );
             const unsubscribe = onSnapshot(q, (snap) => {
-                const now = new Date();
+                const now = TimeService.now();
                 const chances: any[] = [];
                 snap.forEach(doc => {
                     const data = doc.data();
-                    // Solo incluir si tiene expiresAt valido
-                    if (data.expiresAt && typeof data.expiresAt.toDate === 'function') {
-                        if (data.expiresAt.toDate() > now) {
-                            chances.push({ id: doc.id, ...data });
-                        }
+                    const expDate = parseTimestamp(data.expiresAt);
+                    if (expDate && expDate > now) {
+                        chances.push({ id: doc.id, ...data });
                     }
                 });
                 chances.sort((a, b) => {
-                    const timeA = a.createdAt && typeof a.createdAt.toDate === 'function' ? a.createdAt.toDate().getTime() : 0;
-                    const timeB = b.createdAt && typeof b.createdAt.toDate === 'function' ? b.createdAt.toDate().getTime() : 0;
+                    const dateA = parseTimestamp(a.createdAt);
+                    const dateB = parseTimestamp(b.createdAt);
+                    const timeA = dateA ? dateA.getTime() : 0;
+                    const timeB = dateB ? dateB.getTime() : 0;
                     return timeB - timeA;
                 });
                 setPendingMysteryBoxes(chances);
@@ -167,14 +176,15 @@ export const ClientHomePage = () => {
         }
     }, [user?.uid, isAdmin]);
 
-    // Ocultar cajas caducadas en tiempo real sin recargar la pǭgina
+    // Ocultar cajas caducadas en tiempo real sin recargar la página
     useEffect(() => {
         if (pendingMysteryBoxes.length === 0) return;
         const interval = setInterval(() => {
-            const now = new Date();
+            const now = TimeService.now();
             setPendingMysteryBoxes(prev => prev.filter(mb => {
-                if (mb.expiresAt && typeof mb.expiresAt.toDate === 'function') {
-                    return mb.expiresAt.toDate() > now;
+                const expDate = parseTimestamp(mb.expiresAt);
+                if (expDate) {
+                    return expDate > now;
                 }
                 return true;
             }));

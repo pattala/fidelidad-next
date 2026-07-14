@@ -966,7 +966,7 @@ export const ConfigPage = () => {
                                                     </p>
                                                 </div>
                                                 <a 
-                                                    href="/download/Integrador_Beneficios_V1.97.zip" 
+                                                    href="/download/Integrador_Beneficios_V1.98.zip" 
                                                     download 
                                                     className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl font-bold shadow-lg shadow-purple-200 hover:bg-purple-700 hover:scale-105 transition-all active:scale-95 shrink-0"
                                                 >

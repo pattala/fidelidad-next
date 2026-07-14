@@ -13,6 +13,7 @@ let currentPromos = [];
 let enablePetModule = false;
 let globalAllowEmployeeOverride = false;
 let globalStrictMinimumPurchaseBlock = false;
+let globalMysteryBoxConfig = null;
 
 const getIdentifier = (item) => item?.socioNumber || item?.phone || item?.telefono || item?.dni || item?.userId || 'unknown';
 
@@ -1071,14 +1072,16 @@ function showFidelidadPanel() {
         // Auto-show mystery box si esta encendido y val >= minAmount
         const mbxContainer = document.getElementById('cf-mystery-box-container');
         const mbCheckbox = document.getElementById('cf-generate-mystery-box');
+        const mbConfig = globalMysteryBoxConfig || window._cfFullData?.config?.mysteryBox;
+        const isSkipped = window._cfFullData?.skipped;
         
-        console.log(`[Club Fidelidad] Evaluando Caja Sorpresa. Amount: ${val}, Config:`, window._cfFullData?.config?.mysteryBox);
+        console.log(`[Club Fidelidad] Evaluando Caja Sorpresa. Amount: ${val}, Config:`, mbConfig);
         
-        if (mbxContainer && window._cfFullData && window._cfFullData.config?.mysteryBox && window._cfFullData.config.mysteryBox.enabled) {
-            if (val >= (window._cfFullData.config.mysteryBox.minAmount || 0)) {
+        if (mbxContainer && mbConfig && mbConfig.enabled) {
+            if (val >= (mbConfig.minAmount || 0)) {
                 mbxContainer.style.display = 'block';
                 if (mbCheckbox) {
-                    if (window._cfFullData.skipped) {
+                    if (isSkipped) {
                         mbCheckbox.checked = false;
                         mbCheckbox.disabled = true;
                         mbCheckbox.style.opacity = '0.5';
@@ -1087,7 +1090,7 @@ function showFidelidadPanel() {
                         if (labelDiv && !labelDiv.innerHTML.includes('Fuera de horario')) {
                             labelDiv.innerHTML += ' <span style="color:#ef4444; font-size:10px;">(Fuera de horario)</span>';
                         }
-                    } else if (window._cfFullData.config.mysteryBox.cashierDecision === false) {
+                    } else if (mbConfig.cashierDecision === false) {
                         mbCheckbox.checked = true;
                         mbCheckbox.disabled = true;
                         mbCheckbox.style.opacity = '0.5';
@@ -1248,6 +1251,7 @@ function showFidelidadPanel() {
                 enablePetModule = data.enablePetModule === true;
                 globalAllowEmployeeOverride = data.allowEmployeePrizeOverride === true;
                 globalStrictMinimumPurchaseBlock = data.strictMinimumPurchaseBlock === true;
+                globalMysteryBoxConfig = data.mysteryBox || null;
 
                 if (data.clients && data.clients.length > 0) {
                     renderResults(data.clients, data.activePromotions || [], data.activePrizes || []);

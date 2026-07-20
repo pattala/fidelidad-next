@@ -178,7 +178,8 @@ export default async function handler(req, res) {
                                 lastExpirationNoticeTargetDate: null,
                                 lastExpirationNoticeAmount: null,
                                 nextExpirationDate: null,
-                                nextExpirationAmount: 0
+                                nextExpirationAmount: 0,
+                                expirationDetails: []
                             });
                         }
                     }

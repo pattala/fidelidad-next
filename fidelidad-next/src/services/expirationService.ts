@@ -1,6 +1,6 @@
 
 import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, writeBatch, doc, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, writeBatch, doc, increment, Timestamp } from 'firebase/firestore';
 
 import { TimeService } from './timeService';
 
@@ -110,17 +110,14 @@ export const ExpirationService = {
             const startOfToday = TimeService.startOfToday();
             const historyRef = collection(db, `users/${userId}/points_history`);
 
-            // Query credits. We filter by remainingPoints in JS to support legacy records
             const q = query(
                 historyRef,
                 where('type', '==', 'credit')
-                // Removed 'remainingPoints' > 0 because it skips legacy records where field is missing
             );
 
             const snapshot = await getDocs(q);
 
-            let nextDate: Date | null = null;
-            let nextAmount = 0;
+            const expirationMap = new Map<string, { date: Date, points: number }>();
 
             snapshot.docs.forEach(d => {
                 const data = d.data();
@@ -134,16 +131,29 @@ export const ExpirationService = {
 
                     // Only care about future expirations (strictly from today inclusive)
                     if (expireDate >= startOfToday) {
-                        if (!nextDate || expireDate < nextDate) {
-                            nextDate = expireDate;
-                            nextAmount = currentRemaining;
-                        } else if (expireDate.getTime() === nextDate.getTime()) {
-                            // Sum amounts if they expire on the same day
-                            nextAmount += currentRemaining;
-                        }
+                        const dateKey = `${expireDate.getFullYear()}-${String(expireDate.getMonth() + 1).padStart(2, '0')}-${String(expireDate.getDate()).padStart(2, '0')}`;
+                        const current = expirationMap.get(dateKey) || { date: expireDate, points: 0 };
+                        current.points += currentRemaining;
+                        expirationMap.set(dateKey, current);
                     }
                 }
             });
+
+            let nextDate: Date | null = null;
+            let nextAmount = 0;
+
+            const sortedEntries = Array.from(expirationMap.values())
+                .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+            if (sortedEntries.length > 0) {
+                nextDate = sortedEntries[0].date;
+                nextAmount = sortedEntries[0].points;
+            }
+
+            const expirationDetails = sortedEntries.slice(0, 3).map(entry => ({
+                date: Timestamp.fromDate(entry.date),
+                points: entry.points
+            }));
 
             // Update user profile
             const userRef = doc(db, 'users', userId);
@@ -151,7 +161,8 @@ export const ExpirationService = {
 
             await writeBatch(db).update(userRef, {
                 nextExpirationDate: isoDate,
-                nextExpirationAmount: nextDate ? nextAmount : 0
+                nextExpirationAmount: nextDate ? nextAmount : 0,
+                expirationDetails: expirationDetails
             }).commit();
 
             console.log(`[ExpirationService] Updated expiration cache for ${userId}: ${isoDate || 'None'}`);

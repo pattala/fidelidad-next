@@ -66,6 +66,24 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
     const valorPuntoReal = bolsaPuntosMensual > 0 ? presupuestoMensual / bolsaPuntosMensual : 0;
     const costoMercaderia = 100 - margenBruto;
 
+    // Combinar todos los items para el Ecualizador
+    const allItems = useMemo(() => {
+        const items = [];
+        for (const p of physicalRewards) {
+            const isOverridden = p.manualPointsOverride !== undefined;
+            const autoPoints = moneyPerPoint > 0 && p.perceivedReturn > 0 ? Math.ceil((p.publicPrice / (p.perceivedReturn / 100)) / moneyPerPoint) : 0;
+            const requiredPoints = isOverridden ? p.manualPointsOverride! : autoPoints;
+            items.push({ id: p.id, name: p.name, type: 'physical' as const, pointsCost: requiredPoints });
+        }
+        for (const v of vouchers) {
+            const isOverridden = v.manualPointsOverride !== undefined;
+            const autoPoints = valorPuntoReal > 0 ? Math.ceil(v.value / valorPuntoReal) : 0;
+            const requiredPoints = isOverridden ? v.manualPointsOverride! : autoPoints;
+            items.push({ id: v.id, name: `Voucher $${v.value}`, type: 'voucher' as const, pointsCost: requiredPoints });
+        }
+        return items;
+    }, [physicalRewards, vouchers, moneyPerPoint, valorPuntoReal]);
+
     // Valor Entregado al Mostrador (Suma basada en distribución)
     const valorMostradorTotal = useMemo(() => {
         let sum = 0;
@@ -128,24 +146,6 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
             }
         }
     }, [isOpen, config]);
-
-    // Combinar todos los items para el Ecualizador
-    const allItems = useMemo(() => {
-        const items = [];
-        for (const p of physicalRewards) {
-            const isOverridden = p.manualPointsOverride !== undefined;
-            const autoPoints = moneyPerPoint > 0 && p.perceivedReturn > 0 ? Math.ceil((p.publicPrice / (p.perceivedReturn / 100)) / moneyPerPoint) : 0;
-            const requiredPoints = isOverridden ? p.manualPointsOverride! : autoPoints;
-            items.push({ id: p.id, name: p.name, type: 'physical' as const, pointsCost: requiredPoints });
-        }
-        for (const v of vouchers) {
-            const isOverridden = v.manualPointsOverride !== undefined;
-            const autoPoints = valorPuntoReal > 0 ? Math.ceil(v.value / valorPuntoReal) : 0;
-            const requiredPoints = isOverridden ? v.manualPointsOverride! : autoPoints;
-            items.push({ id: v.id, name: `Voucher $${v.value}`, type: 'voucher' as const, pointsCost: requiredPoints });
-        }
-        return items;
-    }, [physicalRewards, vouchers, moneyPerPoint, valorPuntoReal]);
 
     // Total % usado
     const totalPctUsed = allItems.reduce((acc, item) => acc + (distributionPct[item.id] || 0), 0);

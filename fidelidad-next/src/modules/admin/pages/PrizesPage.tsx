@@ -617,8 +617,15 @@ export const PrizesPage = () => {
                                         setFormData({ ...formData, requiresMinimumPurchase: newToggled, minimumPurchaseAmount: newVal });
                                     }}>
                                         <div className="flex-1">
-                                            <h4 className="text-sm font-bold text-orange-800">Requiere Compra Mínima</h4>
-                                            <p className="text-[10px] text-orange-600">Exige una compra mínima simultánea para poder canjearlo.</p>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="text-sm font-bold text-orange-800">Requiere Compra Mínima</h4>
+                                                <span className="text-[9px] font-black uppercase bg-orange-200 text-orange-900 px-2 py-0.5 rounded">
+                                                    {formData.name.toLowerCase().includes('voucher') ? 'Recomendado para Vouchers' : 'Opcional en Productos'}
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-orange-600 mt-0.5">
+                                                Exige una compra mínima simultánea en dinero para permitir el canje.
+                                            </p>
                                         </div>
                                         <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.requiresMinimumPurchase ? 'bg-orange-600' : 'bg-gray-200'}`}>
                                             <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${formData.requiresMinimumPurchase ? 'translate-x-5' : 'translate-x-1'}`} />

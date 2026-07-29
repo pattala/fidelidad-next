@@ -149,18 +149,25 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
             const phys = isPhysical ? physicalRewards.find(p => p.id === item.id) : null;
             const vouch = !isPhysical ? vouchers.find(v => v.id === item.id) : null;
 
-            return {
+            const res: any = {
                 id: item.id,
                 nombre: item.name,
-                costo: item.pointsCost,
+                costo: item.pointsCost || 0,
                 pct: distributionPct[item.id] || 0,
-                type: item.type,
-                publicPrice: phys?.publicPrice,
-                perceivedReturn: phys?.perceivedReturn,
-                internalCost: phys?.internalCost,
-                manualPointsOverride: isPhysical ? phys?.manualPointsOverride : vouch?.manualPointsOverride,
-                voucherValue: vouch?.value
+                type: item.type
             };
+
+            if (isPhysical && phys) {
+                if (phys.publicPrice !== undefined) res.publicPrice = phys.publicPrice;
+                if (phys.perceivedReturn !== undefined) res.perceivedReturn = phys.perceivedReturn;
+                if (phys.internalCost !== undefined) res.internalCost = phys.internalCost;
+                if (phys.manualPointsOverride !== undefined) res.manualPointsOverride = phys.manualPointsOverride;
+            } else if (!isPhysical && vouch) {
+                if (vouch.value !== undefined) res.voucherValue = vouch.value;
+                if (vouch.manualPointsOverride !== undefined) res.manualPointsOverride = vouch.manualPointsOverride;
+            }
+
+            return res;
         });
 
         onSave({

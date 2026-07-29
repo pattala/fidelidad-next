@@ -443,6 +443,55 @@ export const PrizesPage = () => {
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
 
+                            {/* Selector de premios de la Calculadora Maestra */}
+                            {!editingPrize && (config?.masterCalculatorSettings?.distribucionNiveles?.length || 0) > 0 && (
+                                <div className="bg-slate-900 text-white p-4 rounded-xl space-y-2 border border-slate-800 shadow-inner">
+                                    <label className="block text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                                        <Sliders size={14} /> Importar desde la Calculadora Maestra
+                                    </label>
+                                    <select
+                                        className="w-full bg-slate-800 text-slate-100 border border-slate-700 rounded-lg p-2.5 text-sm font-bold outline-none focus:border-emerald-500"
+                                        onChange={(e) => {
+                                            const selectedId = e.target.value;
+                                            if (!selectedId) return;
+                                            const nivel = config?.masterCalculatorSettings?.distribucionNiveles?.find(n => n.id === selectedId);
+                                            if (nivel) {
+                                                const isVoucher = (nivel as any).type === 'voucher' || (typeof nivel.nombre === 'string' && nivel.nombre.toLowerCase().includes('voucher'));
+                                                const cashVal = isVoucher ? ((nivel as any).voucherValue || Number(nivel.nombre.replace(/[^0-9]/g, '')) || 0) : ((nivel as any).publicPrice || 0);
+                                                const mult = config?.masterCalculatorSettings?.umbralMultiplicador || 7;
+                                                const requiresMin = isVoucher && cashVal > 0;
+                                                const minAmt = requiresMin ? (cashVal * mult) : 0;
+                                                const bolsa = config?.masterCalculatorSettings?.bolsaMensualPuntos || 0;
+                                                const targetPts = bolsa * ((nivel.pct || 0) / 100);
+                                                const suggestedStock = nivel.costo > 0 && targetPts > 0 ? Math.floor(targetPts / nivel.costo) : 50;
+
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    name: nivel.nombre,
+                                                    pointsRequired: nivel.costo,
+                                                    cashValue: cashVal,
+                                                    stock: suggestedStock > 0 ? suggestedStock : 50,
+                                                    requiresMinimumPurchase: requiresMin,
+                                                    minimumPurchaseAmount: minAmt
+                                                }));
+                                                toast.success(`Cargado: ${nivel.nombre}`);
+                                            }
+                                        }}
+                                        defaultValue=""
+                                    >
+                                        <option value="" disabled>-- Elegir premio preconfigurado --</option>
+                                        {config?.masterCalculatorSettings?.distribucionNiveles?.map((n) => (
+                                            <option key={n.id} value={n.id}>
+                                                {n.nombre} ({n.costo} pts - {n.pct}% del presupuesto)
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[10px] text-slate-400">
+                                        Selecciona una opción para autocompletar el nombre, puntos, valor y compra mínima. O completa los campos abajo si deseas inventar un premio nuevo.
+                                    </p>
+                                </div>
+                            )}
+
                             {/* Nombre y Desc */}
                             <div className="space-y-4">
                                 <div>

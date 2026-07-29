@@ -76,8 +76,38 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
                 if (config.masterCalculatorSettings.facturacionEstimada) setFacturacionBruta(config.masterCalculatorSettings.facturacionEstimada);
                 if (config.masterCalculatorSettings.umbralMultiplicador) setUmbralMultiplicador(config.masterCalculatorSettings.umbralMultiplicador);
                 
-                // Si ya teníamos niveles, podríamos tratar de mapearlos de vuelta si los IDs coinciden,
-                // pero por ahora mantenemos el estado default para simplificar el mock del dashboard.
+                const niveles = config.masterCalculatorSettings.distribucionNiveles;
+                if (niveles && niveles.length > 0) {
+                    const newPhysical: PhysicalReward[] = [];
+                    const newVouchers: VoucherReward[] = [];
+                    const newDist: Record<string, number> = {};
+
+                    niveles.forEach((n: any) => {
+                        newDist[n.id] = n.pct ?? 0;
+                        const isVoucher = n.type === 'voucher' || (typeof n.nombre === 'string' && n.nombre.toLowerCase().includes('voucher')) || n.voucherValue !== undefined;
+                        if (isVoucher) {
+                            const val = n.voucherValue || Number((n.nombre || '').replace(/[^0-9]/g, '')) || 1000;
+                            newVouchers.push({
+                                id: n.id,
+                                value: val,
+                                manualPointsOverride: n.manualPointsOverride
+                            });
+                        } else {
+                            newPhysical.push({
+                                id: n.id,
+                                name: n.nombre,
+                                publicPrice: n.publicPrice || 1000,
+                                perceivedReturn: n.perceivedReturn || 10,
+                                internalCost: n.internalCost || 300,
+                                manualPointsOverride: n.manualPointsOverride
+                            });
+                        }
+                    });
+
+                    setPhysicalRewards(newPhysical);
+                    setVouchers(newVouchers);
+                    setDistributionPct(newDist);
+                }
             }
         }
     }, [isOpen, config]);
@@ -89,13 +119,13 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
             const isOverridden = p.manualPointsOverride !== undefined;
             const autoPoints = moneyPerPoint > 0 && p.perceivedReturn > 0 ? Math.ceil((p.publicPrice / (p.perceivedReturn / 100)) / moneyPerPoint) : 0;
             const requiredPoints = isOverridden ? p.manualPointsOverride! : autoPoints;
-            items.push({ id: p.id, name: p.name, type: 'physical', pointsCost: requiredPoints });
+            items.push({ id: p.id, name: p.name, type: 'physical' as const, pointsCost: requiredPoints });
         }
         for (const v of vouchers) {
             const isOverridden = v.manualPointsOverride !== undefined;
             const autoPoints = valorPuntoReal > 0 ? Math.ceil(v.value / valorPuntoReal) : 0;
             const requiredPoints = isOverridden ? v.manualPointsOverride! : autoPoints;
-            items.push({ id: v.id, name: `Voucher $${v.value}`, type: 'voucher', pointsCost: requiredPoints });
+            items.push({ id: v.id, name: `Voucher $${v.value}`, type: 'voucher' as const, pointsCost: requiredPoints });
         }
         return items;
     }, [physicalRewards, vouchers, moneyPerPoint, valorPuntoReal]);
@@ -114,12 +144,24 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
     };
 
     const handleSave = () => {
-        const distribucionFinal = allItems.map(item => ({
-            id: item.id,
-            nombre: item.name,
-            costo: item.pointsCost,
-            pct: distributionPct[item.id] || 0
-        }));
+        const distribucionFinal = allItems.map(item => {
+            const isPhysical = item.type === 'physical';
+            const phys = isPhysical ? physicalRewards.find(p => p.id === item.id) : null;
+            const vouch = !isPhysical ? vouchers.find(v => v.id === item.id) : null;
+
+            return {
+                id: item.id,
+                nombre: item.name,
+                costo: item.pointsCost,
+                pct: distributionPct[item.id] || 0,
+                type: item.type,
+                publicPrice: phys?.publicPrice,
+                perceivedReturn: phys?.perceivedReturn,
+                internalCost: phys?.internalCost,
+                manualPointsOverride: isPhysical ? phys?.manualPointsOverride : vouch?.manualPointsOverride,
+                voucherValue: vouch?.value
+            };
+        });
 
         onSave({
             pointCalculationMethod: 'manual',

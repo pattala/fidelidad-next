@@ -460,10 +460,11 @@ export const PrizesPage = () => {
                                             if (nivel) {
                                                 const isVoucher = (nivel as any).type === 'voucher' || (typeof nivel.nombre === 'string' && nivel.nombre.toLowerCase().includes('voucher'));
                                                 const cashVal = isVoucher ? ((nivel as any).voucherValue || Number(nivel.nombre.replace(/[^0-9]/g, '')) || 0) : ((nivel as any).publicPrice || 0);
-                                                const costVal = isVoucher ? cashVal : ((nivel as any).internalCost || Math.round(cashVal * 0.3));
+                                                const costVal = isVoucher ? cashVal : ((nivel as any).internalCost || Math.round(cashVal * 0.5));
                                                 const mult = config?.masterCalculatorSettings?.umbralMultiplicador || 7;
                                                 const requiresMin = isVoucher && cashVal > 0;
-                                                const minAmt = isVoucher ? (cashVal * mult) : Math.ceil((costVal / 0.70) / 100) * 100;
+                                                const ownMargin = (!isVoucher && cashVal > costVal && cashVal > 0) ? ((cashVal - costVal) / cashVal) : 0.50;
+                                                const minAmt = isVoucher ? (cashVal * mult) : Math.ceil((costVal / Math.max(0.1, ownMargin)) / 100) * 100;
                                                 const bolsa = config?.masterCalculatorSettings?.bolsaMensualPuntos || 0;
                                                 const targetPts = bolsa * ((nivel.pct || 0) / 100);
                                                 const suggestedStock = nivel.costo > 0 && targetPts > 0 ? Math.floor(targetPts / nivel.costo) : 50;
@@ -636,8 +637,9 @@ export const PrizesPage = () => {
                                                 const nivelPreset = config?.masterCalculatorSettings?.distribucionNiveles?.find(
                                                     n => n.nombre.toLowerCase() === formData.name.toLowerCase()
                                                 );
-                                                const internalCost = formData.internalCost || (nivelPreset as any)?.internalCost || ((formData.cashValue || 0) * 0.3);
-                                                const rawMin = internalCost > 0 ? (internalCost / 0.70) : (formData.cashValue || 0);
+                                                const internalCost = formData.internalCost || (nivelPreset as any)?.internalCost || ((formData.cashValue || 0) * 0.5);
+                                                const ownMargin = (formData.cashValue > internalCost && formData.cashValue > 0) ? ((formData.cashValue - internalCost) / formData.cashValue) : 0.50;
+                                                const rawMin = internalCost > 0 ? (internalCost / Math.max(0.1, ownMargin)) : (formData.cashValue || 0);
                                                 newVal = Math.ceil(rawMin / 100) * 100;
                                             }
                                         }

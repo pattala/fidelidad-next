@@ -66,6 +66,23 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
     const valorPuntoReal = bolsaPuntosMensual > 0 ? presupuestoMensual / bolsaPuntosMensual : 0;
     const costoMercaderia = 100 - margenBruto;
 
+    // Valor Entregado al Mostrador (Suma basada en distribución)
+    const valorMostradorTotal = useMemo(() => {
+        let sum = 0;
+        allItems.forEach(item => {
+            const pct = (distributionPct[item.id] || 0) / 100;
+            if (pct <= 0) return;
+            const phys = physicalRewards.find(p => p.id === item.id);
+            const vouch = vouchers.find(v => v.id === item.id);
+            const publicVal = phys ? phys.publicPrice : (vouch ? vouch.value : 0);
+            const itemBudget = presupuestoMensual * pct;
+            const costVal = phys ? (phys.internalCost || phys.publicPrice * 0.3) : (vouch ? vouch.value : 1);
+            const count = costVal > 0 ? (itemBudget / costVal) : 0;
+            sum += count * publicVal;
+        });
+        return Math.round(sum);
+    }, [allItems, distributionPct, physicalRewards, vouchers, presupuestoMensual]);
+
     useEffect(() => {
         if (isOpen && config) {
             setMoneyPerPoint(config.pointsMoneyBase || 1000);
@@ -217,13 +234,15 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
                     <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-800 bg-slate-800/50">
                         <div className="p-4">
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2">
-                                Presupuesto Mensual
+                                Presupuesto (Costo)
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full ${presupuestoMode==='pct' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}>
                                     {presupuestoMode === 'pct' ? 'Automático' : 'Fijo'}
                                 </span>
                             </p>
                             <p className={`text-2xl font-black ${presupuestoMode==='pct' ? 'text-emerald-400' : 'text-blue-400'}`}>${Math.floor(presupuestoMensual).toLocaleString()}</p>
-                            <p className="text-[10px] text-slate-500 mt-1">Límite de dinero a repartir en premios</p>
+                            <p className="text-[10px] text-slate-400 mt-1 font-medium">
+                                ≈ <span className="text-emerald-300 font-bold">${valorMostradorTotal.toLocaleString('es-AR')}</span> en Valor Mostrador
+                            </p>
                         </div>
                         <div className="p-4">
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Bolsa de Puntos (Canjeable)</p>
@@ -446,9 +465,10 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
                                                         </div>
                                                     </div>
 
-                                                    {/* Compra Mínima Opcional Sugerida (Basada en Costo e Insumos) */}
+                                                    {/* Compra Mínima Opcional Sugerida (Basada en Margen del Producto) */}
                                                     {(() => {
-                                                        const suggestedMin = reward.internalCost > 0 ? Math.ceil((reward.internalCost / 0.70) / 100) * 100 : (reward.publicPrice || 0);
+                                                        const ownMargin = reward.publicPrice > reward.internalCost && reward.publicPrice > 0 ? (reward.publicPrice - reward.internalCost) / reward.publicPrice : 0.50;
+                                                        const suggestedMin = reward.internalCost > 0 ? Math.ceil((reward.internalCost / Math.max(0.1, ownMargin)) / 100) * 100 : (reward.publicPrice || 0);
                                                         return (
                                                             <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between bg-orange-50/70 px-3 py-1.5 rounded-xl border border-orange-100">
                                                                 <span className="text-[10px] font-bold text-orange-800">

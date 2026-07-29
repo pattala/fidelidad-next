@@ -611,9 +611,23 @@ export const PrizesPage = () => {
                                 <div className="flex flex-col gap-2 p-3 bg-orange-50 rounded-xl border border-orange-100">
                                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => {
                                         const newToggled = !formData.requiresMinimumPurchase;
-                                        // Sugerencia basada en el UMBRAL MULTIPLICADOR (Solapa C de la Calculadora)
-                                        const mult = config?.masterCalculatorSettings?.umbralMultiplicador || 7;
-                                        const newVal = newToggled ? ((formData.cashValue || 0) * mult) : 0;
+                                        const isVoucher = formData.name.toLowerCase().includes('voucher');
+                                        let newVal = 0;
+                                        if (newToggled) {
+                                            if (isVoucher) {
+                                                const mult = config?.masterCalculatorSettings?.umbralMultiplicador || 7;
+                                                newVal = (formData.cashValue || 0) * mult;
+                                            } else {
+                                                // Mantenimiento de costo en Casa de Pastas:
+                                                // Compra Mínima = Costo Interno / Margen de Ganancia del Negocio (70%)
+                                                const nivelPreset = config?.masterCalculatorSettings?.distribucionNiveles?.find(
+                                                    n => n.nombre.toLowerCase() === formData.name.toLowerCase()
+                                                );
+                                                const internalCost = (nivelPreset as any)?.internalCost || ((formData.cashValue || 0) * 0.3);
+                                                const rawMin = internalCost > 0 ? (internalCost / 0.70) : (formData.cashValue || 0);
+                                                newVal = Math.ceil(rawMin / 100) * 100;
+                                            }
+                                        }
                                         setFormData({ ...formData, requiresMinimumPurchase: newToggled, minimumPurchaseAmount: newVal });
                                     }}>
                                         <div className="flex-1">
@@ -624,7 +638,10 @@ export const PrizesPage = () => {
                                                 </span>
                                             </div>
                                             <p className="text-[10px] text-orange-600 mt-0.5">
-                                                Exige una compra mínima simultánea en dinero para permitir el canje.
+                                                {formData.name.toLowerCase().includes('voucher')
+                                                    ? 'Exige una compra mínima simultánea para aplicar el descuento del voucher.'
+                                                    : 'Opcional: Exige una compra mínima en salsas/quesos para cubrir 100% el costo de los insumos del producto.'
+                                                }
                                             </p>
                                         </div>
                                         <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.requiresMinimumPurchase ? 'bg-orange-600' : 'bg-gray-200'}`}>
@@ -642,7 +659,12 @@ export const PrizesPage = () => {
                                                     onChange={e => setFormData({ ...formData, minimumPurchaseAmount: Number(e.target.value) })}
                                                     className="w-full px-3 py-2 bg-white border border-orange-200 rounded-lg text-sm font-bold outline-none focus:border-orange-500"
                                                 />
-                                                <p className="text-[10px] text-orange-500 mt-1">En el catálogo se mostrará: "Para canje compra mínima de ${Number(formData.minimumPurchaseAmount).toLocaleString('es-AR')}"</p>
+                                                <p className="text-[10px] text-orange-500 mt-1">
+                                                    {formData.name.toLowerCase().includes('voucher')
+                                                        ? `Sugerido para Voucher: Multiplicador x7 ($${Number(formData.minimumPurchaseAmount).toLocaleString('es-AR')}).`
+                                                        : `Sugerido para Producto: Cubre el 100% de tus insumos ($${Number(formData.minimumPurchaseAmount).toLocaleString('es-AR')}).`
+                                                    }
+                                                </p>
                                             </div>
                                             <div className="flex items-center gap-3 cursor-pointer p-2 bg-white/50 rounded-lg" onClick={() => {
                                                 setFormData({ ...formData, allowEmployeeOverride: !formData.allowEmployeeOverride });

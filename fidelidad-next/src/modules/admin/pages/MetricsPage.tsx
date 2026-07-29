@@ -501,19 +501,19 @@ export const MetricsPage = () => {
                                 </div>
                                 <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><Sparkles size={32} /></div>
                             </div>
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-blue-100 flex items-center justify-between" title="Equivalente comercial en carta si todos los clientes canjearan sus puntos hoy.">
+                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-blue-100 flex items-center justify-between" title="Equivalente en valor mostrador si todos los clientes canjearan sus puntos acumulados hoy.">
                                 <div>
-                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Deuda Comercial ($)</p>
+                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Deuda Potencial (Mostrador)</p>
                                     <p className="text-3xl font-black text-blue-600">${Math.round(advancedStats?.potentialRevenue || 0).toLocaleString('es-AR')}</p>
-                                    <p className="text-[10px] text-gray-400 mt-1 italic font-bold">Valor Público en Carta</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 italic font-bold">Valor Mostrador</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><DollarSign size={28} /></div>
                             </div>
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center justify-between" title="Costo real de materia prima/insumos de cocina si todos los clientes canjearan sus puntos hoy.">
+                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center justify-between" title="Costo real de productos si todos los clientes canjearan sus puntos acumulados hoy.">
                                 <div>
-                                    <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Deuda Real Cocina ($)</p>
+                                    <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Deuda Potencial (Costo)</p>
                                     <p className="text-3xl font-black text-slate-800">${Math.round((advancedStats?.potentialRevenue || 0) * 0.35).toLocaleString('es-AR')}</p>
-                                    <p className="text-[10px] text-slate-400 mt-1 italic font-bold">Costo Real de Insumos</p>
+                                    <p className="text-[10px] text-slate-400 mt-1 italic font-bold">Costo de Producto</p>
                                 </div>
                                 <div className="p-3 bg-slate-100 text-slate-700 rounded-2xl"><ShoppingBag size={28} /></div>
                             </div>
@@ -634,9 +634,9 @@ export const MetricsPage = () => {
                                 </div>
                                 <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign size={24} /></div>
                             </div>
-                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between" title="Gasto real en insumos/materia prima de los premios entregados en el período.">
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between" title="Costo real de los productos entregados en el período.">
                                 <div>
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Costo Insumos (Cocina)</p>
+                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Costo de Premios</p>
                                     <p className="text-2xl font-black text-slate-800">${Math.round(totalStats?.costRedeemed || 0).toLocaleString('es-AR')}</p>
                                     <TrendIndicator current={totalStats?.costRedeemed || 0} prev={prevTotalStats?.costRedeemed || 0} isRed />
                                 </div>

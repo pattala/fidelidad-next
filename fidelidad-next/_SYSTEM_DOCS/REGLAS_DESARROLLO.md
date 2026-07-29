@@ -20,7 +20,7 @@ Este documento contiene las pautas obligatorias para el desarrollo y mantenimien
 ## 5. Gestión de Versiones, Consola y Compilación/Deploy
 - **Incremento Obligatorio**: Con cada subida (push) que incluya mejoras o correcciones en el programa principal o en la Extensión de Navegador, se DEBE incrementar su respectivo número de versión (V.X.X.X o vX.XX).
 - **Versiones Independientes**: La Extensión del Navegador posee su propio número de versión/revisión en su archivo `manifest.json` y código interno, independiente de la App Web.
-- **Impresión Obligatoria en Consola**: Tanto la App Web como la Extensión de Navegador DEBEN imprimir obligatoriamente su número de versión/revisión en la consola del navegador (`console.log`) al inicializarse, además de ser visible en la interfaz.
+- **Sincronización Total en PWA y Consola**: El número de versión DEBE actualizarse obligatoriamente en `package.json`, en `src/lib/adminConfig.ts` (`APP_VERSION`), en la PWA del cliente (pie del Perfil de usuario `ClientProfilePage.tsx`), en el Panel Administrador y ser impreso en la consola del navegador (`console.log`) al iniciar.
 - **Títulos de Compilación y Deploy**: En todos los casos, el número de versión DEBE figurar explícitamente en los títulos de compilación, mensajes de commit (`git commit -m "vX.X.X: ..."`), reportes y notas de despliegue.
 
 ## 6. Comportamiento Analítico y Fáctico

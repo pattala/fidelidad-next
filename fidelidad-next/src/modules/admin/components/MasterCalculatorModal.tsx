@@ -438,16 +438,31 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
                                                             <p className="text-xs font-black text-slate-700">${Math.floor(requiredSpend).toLocaleString()}</p>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Costo s/Facturación</p>
-                                                        <p className={`text-xs font-black ${realImpact <= 5 ? 'text-emerald-500' : realImpact <= 10 ? 'text-amber-500' : 'text-red-500'}`}>
-                                                            {realImpact.toFixed(1)}% 
-                                                        </p>
+                                                        <div className="text-right">
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Costo s/Facturación</p>
+                                                            <p className={`text-xs font-black ${realImpact <= 5 ? 'text-emerald-500' : realImpact <= 10 ? 'text-amber-500' : 'text-red-500'}`}>
+                                                                {realImpact.toFixed(1)}% 
+                                                            </p>
+                                                        </div>
                                                     </div>
+
+                                                    {/* Compra Mínima Opcional Sugerida (Basada en Costo e Insumos) */}
+                                                    {(() => {
+                                                        const suggestedMin = reward.internalCost > 0 ? Math.ceil((reward.internalCost / 0.70) / 100) * 100 : (reward.publicPrice || 0);
+                                                        return (
+                                                            <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between bg-orange-50/70 px-3 py-1.5 rounded-xl border border-orange-100">
+                                                                <span className="text-[10px] font-bold text-orange-800">
+                                                                    🛒 Compra Mínima Opcional (Sugerida):
+                                                                </span>
+                                                                <span className="text-xs font-black text-orange-700">
+                                                                    ${suggestedMin.toLocaleString('es-AR')}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
-                                            </div>
-                                        )
-                                    })}
+                                            )
+                                        })}
 
                                     <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-3 flex items-center gap-3">
                                         <input 

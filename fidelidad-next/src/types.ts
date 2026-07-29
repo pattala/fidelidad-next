@@ -326,7 +326,8 @@ export interface Prize {
     description?: string;
     active: boolean;
     imageUrl?: string;
-    cashValue?: number; // Valor en pesos para reportes
+    cashValue?: number; // Valor en pesos para reportes (Precio Público / Valor Percibido)
+    internalCost?: number; // Costo real interno de insumos / producción
     isInternal?: boolean;
     requiresMinimumPurchase?: boolean;
     minimumPurchaseAmount?: number;

@@ -38,6 +38,7 @@ export const PrizesPage = () => {
         active: true,
         imageUrl: '',
         cashValue: 0,
+        internalCost: 0,
         isInternal: false,
         requiresMinimumPurchase: false,
         minimumPurchaseAmount: 0,
@@ -129,6 +130,7 @@ export const PrizesPage = () => {
             active: prize.active,
             imageUrl: prize.imageUrl || '',
             cashValue: prize.cashValue || 0,
+            internalCost: prize.internalCost || 0,
             isInternal: prize.isInternal || false,
             requiresMinimumPurchase: prize.requiresMinimumPurchase || false,
             minimumPurchaseAmount: prize.minimumPurchaseAmount || 0,
@@ -458,9 +460,10 @@ export const PrizesPage = () => {
                                             if (nivel) {
                                                 const isVoucher = (nivel as any).type === 'voucher' || (typeof nivel.nombre === 'string' && nivel.nombre.toLowerCase().includes('voucher'));
                                                 const cashVal = isVoucher ? ((nivel as any).voucherValue || Number(nivel.nombre.replace(/[^0-9]/g, '')) || 0) : ((nivel as any).publicPrice || 0);
+                                                const costVal = isVoucher ? cashVal : ((nivel as any).internalCost || Math.round(cashVal * 0.3));
                                                 const mult = config?.masterCalculatorSettings?.umbralMultiplicador || 7;
                                                 const requiresMin = isVoucher && cashVal > 0;
-                                                const minAmt = requiresMin ? (cashVal * mult) : 0;
+                                                const minAmt = isVoucher ? (cashVal * mult) : Math.ceil((costVal / 0.70) / 100) * 100;
                                                 const bolsa = config?.masterCalculatorSettings?.bolsaMensualPuntos || 0;
                                                 const targetPts = bolsa * ((nivel.pct || 0) / 100);
                                                 const suggestedStock = nivel.costo > 0 && targetPts > 0 ? Math.floor(targetPts / nivel.costo) : 50;
@@ -470,6 +473,7 @@ export const PrizesPage = () => {
                                                     name: nivel.nombre,
                                                     pointsRequired: nivel.costo,
                                                     cashValue: cashVal,
+                                                    internalCost: costVal,
                                                     stock: suggestedStock > 0 ? suggestedStock : 50,
                                                     requiresMinimumPurchase: requiresMin,
                                                     minimumPurchaseAmount: minAmt
@@ -516,7 +520,7 @@ export const PrizesPage = () => {
                                 </div>
                             </div>
 
-                            {/* Grid 2Cols */}
+                            {/* Grid 2Cols: Puntos & Stock */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Puntos Requeridos</label>
@@ -544,27 +548,36 @@ export const PrizesPage = () => {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Valor en Dinero (Estimado)</label>
-                                <div className="relative">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</div>
-                                    <input
-                                        type="number"
-                                        className="w-full pl-8 rounded-lg border-blue-200 border p-3 font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-100 bg-blue-50/20"
-                                        value={formData.cashValue || ''}
-                                        onChange={e => {
-                                            const newCashValue = parseInt(e.target.value) || 0;
-                                            let newMinPurchase = formData.minimumPurchaseAmount;
-                                            if (formData.requiresMinimumPurchase) {
-                                                const mult = config?.masterCalculatorSettings?.umbralMultiplicador || 7;
-                                                newMinPurchase = newCashValue * mult;
-                                            }
-                                            setFormData({ ...formData, cashValue: newCashValue, minimumPurchaseAmount: newMinPurchase });
-                                        }}
-                                        placeholder="Ej: 5000"
-                                    />
+                            {/* Grid 2Cols: Precio Público & Costo Interno */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Precio Público / Valor ($)</label>
+                                    <div className="relative">
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</div>
+                                        <input
+                                            type="number"
+                                            className="w-full pl-8 rounded-lg border-blue-200 border p-3 font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-100 bg-blue-50/20"
+                                            value={formData.cashValue || ''}
+                                            onChange={e => setFormData({ ...formData, cashValue: parseInt(e.target.value) || 0 })}
+                                            placeholder="Ej: 7300"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-1 ml-1">Valor percibido / Métrica comercial.</p>
                                 </div>
-                                <p className="text-[10px] text-gray-400 mt-1 ml-1">Para reportes de "Dinero Devuelto".</p>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Costo Real Interno ($)</label>
+                                    <div className="relative">
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</div>
+                                        <input
+                                            type="number"
+                                            className="w-full pl-8 rounded-lg border-slate-200 border p-3 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-100 bg-slate-50"
+                                            value={formData.internalCost || ''}
+                                            onChange={e => setFormData({ ...formData, internalCost: parseInt(e.target.value) || 0 })}
+                                            placeholder="Ej: 3566"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-1 ml-1">Costo de insumos de cocina.</p>
+                                </div>
                             </div>
 
 
@@ -623,7 +636,7 @@ export const PrizesPage = () => {
                                                 const nivelPreset = config?.masterCalculatorSettings?.distribucionNiveles?.find(
                                                     n => n.nombre.toLowerCase() === formData.name.toLowerCase()
                                                 );
-                                                const internalCost = (nivelPreset as any)?.internalCost || ((formData.cashValue || 0) * 0.3);
+                                                const internalCost = formData.internalCost || (nivelPreset as any)?.internalCost || ((formData.cashValue || 0) * 0.3);
                                                 const rawMin = internalCost > 0 ? (internalCost / 0.70) : (formData.cashValue || 0);
                                                 newVal = Math.ceil(rawMin / 100) * 100;
                                             }

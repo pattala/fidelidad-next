@@ -232,6 +232,7 @@ export default async function handler(req, res) {
                 type: 'debit',
                 prizeId: prizeId,
                 redeemedValue: pData.cashValue || 0,
+                internalCost: pData.internalCost || 0,
                 purchaseAmount: purchaseAmount ? Number(purchaseAmount) : 0,
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
@@ -245,6 +246,7 @@ export default async function handler(req, res) {
                 points: -pointsNeeded,
                 amount: purchaseAmount ? Number(purchaseAmount) : 0,
                 redeemedValue: pData.cashValue || 0,
+                internalCost: pData.internalCost || 0,
                 type: 'debit',
                 reason: 'redemption',
                 redemptionCode: shortCode,

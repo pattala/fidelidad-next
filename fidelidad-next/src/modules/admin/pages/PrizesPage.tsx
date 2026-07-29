@@ -674,12 +674,35 @@ export const PrizesPage = () => {
                                                     onChange={e => setFormData({ ...formData, minimumPurchaseAmount: Number(e.target.value) })}
                                                     className="w-full px-3 py-2 bg-white border border-orange-200 rounded-lg text-sm font-bold outline-none focus:border-orange-500"
                                                 />
-                                                <p className="text-[10px] text-orange-500 mt-1">
-                                                    {formData.name.toLowerCase().includes('voucher')
-                                                        ? `Sugerido para Voucher: Multiplicador x7 ($${Number(formData.minimumPurchaseAmount).toLocaleString('es-AR')}).`
-                                                        : `Sugerido para Producto: Cubre el 100% de tus insumos ($${Number(formData.minimumPurchaseAmount).toLocaleString('es-AR')}).`
+                                                {(() => {
+                                                    const isVoucher = formData.name.toLowerCase().includes('voucher');
+                                                    const internalCost = formData.internalCost || ((formData.cashValue || 0) * 0.5);
+                                                    const ownMargin = (formData.cashValue > internalCost && formData.cashValue > 0) ? ((formData.cashValue - internalCost) / formData.cashValue) : 0.50;
+                                                    const rawMin = internalCost > 0 ? (internalCost / Math.max(0.1, ownMargin)) : (formData.cashValue || 0);
+                                                    const suggestedMin = Math.ceil(rawMin / 100) * 100;
+                                                    const marginPct = (ownMargin * 100).toFixed(1);
+                                                    
+                                                    if (isVoucher) {
+                                                        return (
+                                                            <p className="text-[10px] text-orange-600 mt-1 font-medium">
+                                                                💡 Sugerido para Voucher: Multiplicador x7 (${suggestedMin.toLocaleString('es-AR')}). Puedes modificar este monto manualmente.
+                                                            </p>
+                                                        );
                                                     }
-                                                </p>
+                                                    
+                                                    return (
+                                                        <div className="mt-1 bg-white/80 p-2 rounded-lg border border-orange-200/60">
+                                                            <p className="text-[10px] text-orange-800 font-bold">
+                                                                💡 Sugerido por Calculadora: ${suggestedMin.toLocaleString('es-AR')}
+                                                            </p>
+                                                            {internalCost > 0 && (
+                                                                <p className="text-[9px] text-orange-700/80 mt-0.5 font-medium">
+                                                                    Fórmula: Costo ${internalCost.toLocaleString('es-AR')} / Margen {marginPct}% = ${Math.round(rawMin).toLocaleString('es-AR')} → Sugerido ${suggestedMin.toLocaleString('es-AR')} (Puedes cambiarlo manualmente arriba)
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                             <div className="flex items-center gap-3 cursor-pointer p-2 bg-white/50 rounded-lg" onClick={() => {
                                                 setFormData({ ...formData, allowEmployeeOverride: !formData.allowEmployeeOverride });

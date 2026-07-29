@@ -468,15 +468,24 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
                                                     {/* Compra Mínima Opcional Sugerida (Basada en Margen del Producto) */}
                                                     {(() => {
                                                         const ownMargin = reward.publicPrice > reward.internalCost && reward.publicPrice > 0 ? (reward.publicPrice - reward.internalCost) / reward.publicPrice : 0.50;
-                                                        const suggestedMin = reward.internalCost > 0 ? Math.ceil((reward.internalCost / Math.max(0.1, ownMargin)) / 100) * 100 : (reward.publicPrice || 0);
+                                                        const rawMin = reward.internalCost > 0 ? (reward.internalCost / Math.max(0.1, ownMargin)) : (reward.publicPrice || 0);
+                                                        const suggestedMin = Math.ceil(rawMin / 100) * 100;
+                                                        const marginPct = (ownMargin * 100).toFixed(1);
                                                         return (
-                                                            <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between bg-orange-50/70 px-3 py-1.5 rounded-xl border border-orange-100">
-                                                                <span className="text-[10px] font-bold text-orange-800">
-                                                                    🛒 Compra Mínima Opcional (Sugerida):
-                                                                </span>
-                                                                <span className="text-xs font-black text-orange-700">
-                                                                    ${suggestedMin.toLocaleString('es-AR')}
-                                                                </span>
+                                                            <div className="mt-3 pt-2 border-t border-slate-100 bg-orange-50/70 px-3 py-1.5 rounded-xl border border-orange-100">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-[10px] font-bold text-orange-800">
+                                                                        🛒 Compra Mínima Opcional (Sugerida):
+                                                                    </span>
+                                                                    <span className="text-xs font-black text-orange-700">
+                                                                        ${suggestedMin.toLocaleString('es-AR')}
+                                                                    </span>
+                                                                </div>
+                                                                {reward.internalCost > 0 && (
+                                                                    <p className="text-[9px] text-orange-800/80 mt-1 font-medium leading-tight">
+                                                                        Fórmula: Costo ${reward.internalCost.toLocaleString('es-AR')} / Margen {marginPct}% = ${Math.round(rawMin).toLocaleString('es-AR')} → Redondeado ${suggestedMin.toLocaleString('es-AR')}
+                                                                    </p>
+                                                                )}
                                                             </div>
                                                         );
                                                     })()}

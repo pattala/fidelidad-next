@@ -99,6 +99,7 @@ export const MetricsPage = () => {
         activeCustomers: 0,
         totalCustomers: 0,
         potentialRevenue: 0,
+        potentialCostRevenue: 0,
         creditCount: 0,
         referralCount: 0,
         projectedExpirations: 0,
@@ -276,7 +277,24 @@ export const MetricsPage = () => {
             setMysteryStats(mStats);
 
             setMovementsData(currentMovements);
-            const realPV = (appConfig?.pointValue || 10);
+
+            // 1. Obtener valor de punto mostrador y costo efectivo respetando la grilla de premios
+            const prizesSnap = await safeQuery(getDocs(query(collection(db, 'prizes'), where('active', '==', true))));
+            let totalRatio = 0, totalCostRatio = 0, prizeCount = 0;
+            prizesSnap.docs?.forEach((d: any) => {
+                const p = d.data();
+                if (p.cashValue && p.pointsRequired >= 1) {
+                    totalRatio += (p.cashValue / p.pointsRequired);
+                    // Para productos se usa el costo interno cargado, para vouchers es el valor nominal del voucher
+                    const prizeCost = (p.internalCost !== undefined && Number(p.internalCost) > 0) ? Number(p.internalCost) : Number(p.cashValue);
+                    totalCostRatio += (prizeCost / p.pointsRequired);
+                    prizeCount++;
+                }
+            });
+            const pointValueReal = prizeCount > 0 ? (Math.round((totalRatio / prizeCount) * 100) / 100) : (appConfig?.pointValue || 10);
+            const pointCostValueReal = prizeCount > 0 ? (Math.round((totalCostRatio / prizeCount) * 100) / 100) : (pointValueReal * 0.35);
+            const calcMethod = appConfig?.pointCalculationMethod || (appConfig?.useAutomaticPointValue ? 'average' : 'manual');
+            
             const currentResults = processStats(currentMovements, appConfig);
             const prevResults = processStats(prevMovements, appConfig);
             const currentNetEmitted = currentResults.tEmitted - currentResults.tExpired;
@@ -288,10 +306,17 @@ export const MetricsPage = () => {
             const startOfToday = TimeService.startOfToday(), next30Days = new Date(startOfToday);
             next30Days.setDate(next30Days.getDate() + 30);
             const next30Str = next30Days.toISOString().split('T')[0];
+            const startOfTodayStr = startOfToday.toISOString().split('T')[0];
             const effectiveDormantDays = config?.dormantDays || 30;
             const dormantThresholdDate = new Date(now);
             dormantThresholdDate.setDate(dormantThresholdDate.getDate() - effectiveDormantDays);
-            const dormantThresholdStr = dormantThresholdDate.toISOString().split('T')[0];
+
+            // Intervalos para el Cash Flow directo en cliente
+            const forecastIntervals: Record<string, { label: string, points: number, money: number, count: number }> = {
+                short:  { label: 'Próximos 7 días', points: 0, money: 0, count: 0 },
+                medium: { label: '8 a 30 días',      points: 0, money: 0, count: 0 },
+                long:   { label: '31 a 90 días',      points: 0, money: 0, count: 0 }
+            };
 
             allUsersSnap.forEach(uDoc => {
                 const u = uDoc.data(); if (u.role === 'admin') return;
@@ -306,11 +331,51 @@ export const MetricsPage = () => {
                     dormantCount++;
                 }
 
-                if (u.nextExpirationDate) {
-                    const nextExDate = u.nextExpirationDate.toString();
-                    if (nextExDate < startOfToday.toISOString().split('T')[0]) totalVirtualExpired += Math.min(uPoints, Number(u.nextExpirationAmount || 0));
-                    else if (nextExDate <= next30Str) totalProjectedNext30 += Number(u.nextExpirationAmount || 0);
+                if (u.nextExpirationDate && u.nextExpirationAmount) {
+                    const nextExDateStr = u.nextExpirationDate.toString();
+                    const expAmount = Number(u.nextExpirationAmount || 0);
+                    if (expAmount > 0) {
+                        if (nextExDateStr < startOfTodayStr) {
+                            totalVirtualExpired += Math.min(uPoints, expAmount);
+                        } else {
+                            if (nextExDateStr <= next30Str) totalProjectedNext30 += expAmount;
+                            const expDate = new Date(nextExDateStr + 'T12:00:00');
+                            const diffDays = Math.ceil((expDate.getTime() - now.getTime()) / 86400000);
+                            if (diffDays >= 0) {
+                                let bucket: any = null;
+                                if (diffDays <= 7) bucket = forecastIntervals.short;
+                                else if (diffDays <= 30) bucket = forecastIntervals.medium;
+                                else if (diffDays <= 90) bucket = forecastIntervals.long;
+                                if (bucket) {
+                                    bucket.points += expAmount;
+                                    bucket.count++;
+                                }
+                            }
+                        }
+                    }
                 }
+            });
+
+            // Determinar valor del punto efectivo final según método (redondeado a 2 decimales exactos)
+            let rawPV = appConfig?.pointValue || 10;
+            if (calcMethod === 'average') rawPV = pointValueReal;
+            else if (calcMethod === 'budget' && totalSystemPoints > 0) rawPV = (appConfig?.pointValueBudget || 0) / totalSystemPoints;
+
+            const effectivePV = Math.round(rawPV * 100) / 100;
+            let rawCostPV = pointCostValueReal;
+            if (calcMethod === 'manual') rawCostPV = Math.round((effectivePV * 0.35) * 100) / 100;
+            const effectiveCostPV = Math.round(rawCostPV * 100) / 100;
+
+            // Asignar dinero proyectado en Cash Flow con el valor del punto efectivo
+            Object.values(forecastIntervals).forEach(b => {
+                b.money = b.points * effectivePV;
+            });
+
+            setForecastData({
+                totalPoints: Object.values(forecastIntervals).reduce((acc, b) => acc + b.points, 0),
+                totalMoney: Object.values(forecastIntervals).reduce((acc, b) => acc + b.money, 0),
+                intervals: Object.entries(forecastIntervals).map(([key, val]) => ({ key, ...val })),
+                pointValue: effectivePV
             });
 
             const realCirculation = Math.max(0, totalSystemPoints - totalVirtualExpired);
@@ -353,7 +418,9 @@ export const MetricsPage = () => {
             setAdvancedStats({
                 averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
                 frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
-                activeCustomers: currentResults.activeUids.size, totalCustomers: currentResults.activeUids.size, potentialRevenue: realCirculation * realPV,
+                activeCustomers: currentResults.activeUids.size, totalCustomers: currentResults.activeUids.size, 
+                potentialRevenue: realCirculation * effectivePV,
+                potentialCostRevenue: realCirculation * effectiveCostPV,
                 creditCount: currentResults.creditCount, referralCount: currentResults.referralCount, projectedExpirations: totalProjectedNext30, circulatingPoints: realCirculation,
                 newCustomers: pwaCountFinal + localCountFinal, dormantCustomers: dormantCount
             });
@@ -509,11 +576,11 @@ export const MetricsPage = () => {
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><DollarSign size={28} /></div>
                             </div>
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center justify-between" title="Costo real de productos si todos los clientes canjearan sus puntos acumulados hoy.">
+                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center justify-between" title="Costo real de reposición de productos o valor nominal de vouchers si todos los clientes canjearan sus puntos acumulados hoy.">
                                 <div>
                                     <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Deuda Potencial (Costo)</p>
-                                    <p className="text-3xl font-black text-slate-800">${Math.round((advancedStats?.potentialRevenue || 0) * 0.35).toLocaleString('es-AR')}</p>
-                                    <p className="text-[10px] text-slate-400 mt-1 italic font-bold">Costo de Producto</p>
+                                    <p className="text-3xl font-black text-slate-800">${Math.round(advancedStats?.potentialCostRevenue || 0).toLocaleString('es-AR')}</p>
+                                    <p className="text-[10px] text-slate-400 mt-1 italic font-bold">Costo de Producto / Vouchers</p>
                                 </div>
                                 <div className="p-3 bg-slate-100 text-slate-700 rounded-2xl"><ShoppingBag size={28} /></div>
                             </div>

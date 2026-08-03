@@ -498,8 +498,6 @@ export const MetricsPage = () => {
                 const usersMap = new Map(); usersSnap.forEach(d => usersMap.set(d.id, d.data()));
                 setTopSpenders(sortedSpenders.map(([uid, total]) => { const uData = usersMap.get(uid); return uData ? { id: uid, name: uData.name || uData.nombre || 'Socio', total, socioNumber: uData.socioNumber || uData.numeroSocio || '', dni: uData.dni || '' } : { id: uid, name: 'Socio Desconocido', total, socioNumber: '', dni: '' }; }));
             } else setTopSpenders([]);
-
-            if (currentMovements.length > 0) fetchForecast();
         } catch (error) { console.error("Error metrics:", error); toast.error("Error al cargar las métricas"); }
         finally { setLoading(false); setIsUpdating(false); }
     }

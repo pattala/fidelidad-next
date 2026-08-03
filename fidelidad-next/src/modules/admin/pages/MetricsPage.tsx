@@ -276,7 +276,20 @@ export const MetricsPage = () => {
             setMysteryStats(mStats);
 
             setMovementsData(currentMovements);
-            const realPV = (appConfig?.pointValue || 10);
+
+            // 1. Obtener valor de punto efectivo respetando método de configuración
+            const prizesSnap = await safeQuery(getDocs(query(collection(db, 'prizes'), where('active', '==', true))));
+            let totalRatio = 0, prizeCount = 0;
+            prizesSnap.docs?.forEach((d: any) => {
+                const p = d.data();
+                if (p.cashValue && p.pointsRequired >= 1) {
+                    totalRatio += (p.cashValue / p.pointsRequired);
+                    prizeCount++;
+                }
+            });
+            const pointValueReal = prizeCount > 0 ? (totalRatio / prizeCount) : (appConfig?.pointValue || 10);
+            const calcMethod = appConfig?.pointCalculationMethod || (appConfig?.useAutomaticPointValue ? 'average' : 'manual');
+            
             const currentResults = processStats(currentMovements, appConfig);
             const prevResults = processStats(prevMovements, appConfig);
             const currentNetEmitted = currentResults.tEmitted - currentResults.tExpired;
@@ -288,10 +301,17 @@ export const MetricsPage = () => {
             const startOfToday = TimeService.startOfToday(), next30Days = new Date(startOfToday);
             next30Days.setDate(next30Days.getDate() + 30);
             const next30Str = next30Days.toISOString().split('T')[0];
+            const startOfTodayStr = startOfToday.toISOString().split('T')[0];
             const effectiveDormantDays = config?.dormantDays || 30;
             const dormantThresholdDate = new Date(now);
             dormantThresholdDate.setDate(dormantThresholdDate.getDate() - effectiveDormantDays);
-            const dormantThresholdStr = dormantThresholdDate.toISOString().split('T')[0];
+
+            // Intervalos para el Cash Flow directo en cliente
+            const forecastIntervals: Record<string, { label: string, points: number, money: number, count: number }> = {
+                short:  { label: 'Próximos 7 días', points: 0, money: 0, count: 0 },
+                medium: { label: '8 a 30 días',      points: 0, money: 0, count: 0 },
+                long:   { label: '31 a 90 días',      points: 0, money: 0, count: 0 }
+            };
 
             allUsersSnap.forEach(uDoc => {
                 const u = uDoc.data(); if (u.role === 'admin') return;
@@ -306,11 +326,46 @@ export const MetricsPage = () => {
                     dormantCount++;
                 }
 
-                if (u.nextExpirationDate) {
-                    const nextExDate = u.nextExpirationDate.toString();
-                    if (nextExDate < startOfToday.toISOString().split('T')[0]) totalVirtualExpired += Math.min(uPoints, Number(u.nextExpirationAmount || 0));
-                    else if (nextExDate <= next30Str) totalProjectedNext30 += Number(u.nextExpirationAmount || 0);
+                if (u.nextExpirationDate && u.nextExpirationAmount) {
+                    const nextExDateStr = u.nextExpirationDate.toString();
+                    const expAmount = Number(u.nextExpirationAmount || 0);
+                    if (expAmount > 0) {
+                        if (nextExDateStr < startOfTodayStr) {
+                            totalVirtualExpired += Math.min(uPoints, expAmount);
+                        } else {
+                            if (nextExDateStr <= next30Str) totalProjectedNext30 += expAmount;
+                            const expDate = new Date(nextExDateStr + 'T12:00:00');
+                            const diffDays = Math.ceil((expDate.getTime() - now.getTime()) / 86400000);
+                            if (diffDays >= 0) {
+                                let bucket: any = null;
+                                if (diffDays <= 7) bucket = forecastIntervals.short;
+                                else if (diffDays <= 30) bucket = forecastIntervals.medium;
+                                else if (diffDays <= 90) bucket = forecastIntervals.long;
+                                if (bucket) {
+                                    bucket.points += expAmount;
+                                    bucket.count++;
+                                }
+                            }
+                        }
+                    }
                 }
+            });
+
+            // Determinar valor del punto efectivo final según método
+            let effectivePV = appConfig?.pointValue || 10;
+            if (calcMethod === 'average') effectivePV = pointValueReal;
+            else if (calcMethod === 'budget' && totalSystemPoints > 0) effectivePV = (appConfig?.pointValueBudget || 0) / totalSystemPoints;
+
+            // Asignar dinero proyectado en Cash Flow con el valor del punto efectivo
+            Object.values(forecastIntervals).forEach(b => {
+                b.money = b.points * effectivePV;
+            });
+
+            setForecastData({
+                totalPoints: Object.values(forecastIntervals).reduce((acc, b) => acc + b.points, 0),
+                totalMoney: Object.values(forecastIntervals).reduce((acc, b) => acc + b.money, 0),
+                intervals: Object.entries(forecastIntervals).map(([key, val]) => ({ key, ...val })),
+                pointValue: effectivePV
             });
 
             const realCirculation = Math.max(0, totalSystemPoints - totalVirtualExpired);
@@ -353,7 +408,7 @@ export const MetricsPage = () => {
             setAdvancedStats({
                 averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
                 frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
-                activeCustomers: currentResults.activeUids.size, totalCustomers: currentResults.activeUids.size, potentialRevenue: realCirculation * realPV,
+                activeCustomers: currentResults.activeUids.size, totalCustomers: currentResults.activeUids.size, potentialRevenue: realCirculation * effectivePV,
                 creditCount: currentResults.creditCount, referralCount: currentResults.referralCount, projectedExpirations: totalProjectedNext30, circulatingPoints: realCirculation,
                 newCustomers: pwaCountFinal + localCountFinal, dormantCustomers: dormantCount
             });

@@ -331,29 +331,60 @@ export const MetricsPage = () => {
                     dormantCount++;
                 }
 
-                if (u.nextExpirationDate && u.nextExpirationAmount) {
-                    const nextExDateStr = u.nextExpirationDate.toString();
-                    const expAmount = Number(u.nextExpirationAmount || 0);
-                    if (expAmount > 0) {
-                        if (nextExDateStr < startOfTodayStr) {
-                            totalVirtualExpired += Math.min(uPoints, expAmount);
-                        } else {
-                            if (nextExDateStr <= next30Str) totalProjectedNext30 += expAmount;
-                            const expDate = new Date(nextExDateStr + 'T12:00:00');
-                            const diffDays = Math.ceil((expDate.getTime() - now.getTime()) / 86400000);
-                            if (diffDays >= 0) {
-                                let bucket: any = null;
-                                if (diffDays <= 7) bucket = forecastIntervals.short;
-                                else if (diffDays <= 30) bucket = forecastIntervals.medium;
-                                else if (diffDays <= 90) bucket = forecastIntervals.long;
-                                if (bucket) {
-                                    bucket.points += expAmount;
-                                    bucket.count++;
-                                }
+                // Recopilar items de vencimiento (soporta expirationDetails array o nextExpirationDate cache)
+                const expItems: Array<{ date: Date, points: number }> = [];
+                if (Array.isArray(u.expirationDetails) && u.expirationDetails.length > 0) {
+                    u.expirationDetails.forEach((det: any) => {
+                        let dDate: Date | null = null;
+                        if (det.date?.toDate) dDate = det.date.toDate();
+                        else if (det.date instanceof Date) dDate = det.date;
+                        else if (typeof det.date === 'string') {
+                            const parts = det.date.split('T')[0].split('-');
+                            if (parts.length === 3) dDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+                            else {
+                                const parsed = new Date(det.date);
+                                if (!isNaN(parsed.getTime())) dDate = parsed;
+                            }
+                        }
+                        const pts = Number(det.points || 0);
+                        if (dDate && pts > 0) expItems.push({ date: dDate, points: pts });
+                    });
+                } else if (u.nextExpirationDate && Number(u.nextExpirationAmount || 0) > 0) {
+                    let dDate: Date | null = null;
+                    if (typeof u.nextExpirationDate.toDate === 'function') dDate = u.nextExpirationDate.toDate();
+                    else if (u.nextExpirationDate instanceof Date) dDate = u.nextExpirationDate;
+                    else if (typeof u.nextExpirationDate === 'string') {
+                        const parts = u.nextExpirationDate.split('T')[0].split('-');
+                        if (parts.length === 3) dDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+                        else {
+                            const parsed = new Date(u.nextExpirationDate);
+                            if (!isNaN(parsed.getTime())) dDate = parsed;
+                        }
+                    }
+                    const pts = Number(u.nextExpirationAmount || 0);
+                    if (dDate && pts > 0) expItems.push({ date: dDate, points: pts });
+                }
+
+                expItems.forEach(item => {
+                    const itemDateStr = `${item.date.getFullYear()}-${String(item.date.getMonth() + 1).padStart(2, '0')}-${String(item.date.getDate()).padStart(2, '0')}`;
+                    if (itemDateStr < startOfTodayStr) {
+                        totalVirtualExpired += Math.min(uPoints, item.points);
+                    } else {
+                        if (itemDateStr <= next30Str) totalProjectedNext30 += item.points;
+                        const itemDayStart = new Date(item.date.getFullYear(), item.date.getMonth(), item.date.getDate());
+                        const diffDays = Math.round((itemDayStart.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24));
+                        if (diffDays >= 0) {
+                            let bucket: any = null;
+                            if (diffDays <= 7) bucket = forecastIntervals.short;
+                            else if (diffDays <= 30) bucket = forecastIntervals.medium;
+                            else if (diffDays <= 90) bucket = forecastIntervals.long;
+                            if (bucket) {
+                                bucket.points += item.points;
+                                bucket.count++;
                             }
                         }
                     }
-                }
+                });
             });
 
             // Determinar valor del punto efectivo final según método (redondeado a 2 decimales exactos)

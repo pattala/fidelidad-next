@@ -54,8 +54,8 @@ export const MetricsPage = () => {
     const [topVisitors, setTopVisitors] = useState<any[]>([]);
     const [topReferrers, setTopReferrers] = useState<any[]>([]);
     const [registrationSources, setRegistrationSources] = useState<{ pwa: number, local: number }>({ pwa: 0, local: 0 });
-    const [totalStats, setTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0, moneyRedeemed: 0 });
-    const [prevTotalStats, setPrevTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0, moneyRedeemed: 0 });
+    const [totalStats, setTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0, moneyRedeemed: 0, costRedeemed: 0 });
+    const [prevTotalStats, setPrevTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0, moneyRedeemed: 0, costRedeemed: 0 });
     const [activeDateRange, setActiveDateRange] = useState<{ start: Date | null, end: Date | null }>({ start: null, end: null });
     const [heatmapLoading, setHeatmapLoading] = useState(false);
     const [heatmapMode, setHeatmapMode] = useState<'trend' | 'weekly'>('trend');
@@ -178,9 +178,9 @@ export const MetricsPage = () => {
     }
 
     function processStats(movements: any[], appConfig: any) {
-        const grouped = new Map<string, { emitted: number, redeemed: number, expired: number, money: number, referrals: number }>();
+        const grouped = new Map<string, { emitted: number, redeemed: number, expired: number, money: number, cost: number, referrals: number }>();
         const spenders = new Map<string, number>();
-        let tEmitted = 0, tRedeemed = 0, tExpired = 0, tMoneyRedeemed = 0;
+        let tEmitted = 0, tRedeemed = 0, tExpired = 0, tMoneyRedeemed = 0, tCostRedeemed = 0;
         let totalMoneySpent = 0, creditCount = 0, referralCount = 0;
         const activeUids = new Set<string>();
         const heatmapCount = Array(7).fill(0).map(() => Array(24).fill(0));
@@ -190,7 +190,7 @@ export const MetricsPage = () => {
             const key = (timeRange === 'today' || timeRange === '30_days' || timeRange === 'custom')
                 ? mov.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
                 : mov.date.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
-            const current = grouped.get(key) || { emitted: 0, redeemed: 0, expired: 0, money: 0, referrals: 0 };
+            const current = grouped.get(key) || { emitted: 0, redeemed: 0, expired: 0, money: 0, cost: 0, referrals: 0 };
             if (mov.type === 'credit') {
                 const pts = Number(mov.amount || mov.points || 0);
                 current.emitted += pts; tEmitted += pts;
@@ -214,12 +214,14 @@ export const MetricsPage = () => {
                 else {
                     current.redeemed += pts; tRedeemed += pts;
                     const val = mov.redeemedValue || (pts * (appConfig?.pointValue || 10));
+                    const costVal = mov.internalCost !== undefined && mov.internalCost > 0 ? mov.internalCost : Math.round(val * 0.3);
                     current.money += val; tMoneyRedeemed += val;
+                    current.cost = (current.cost || 0) + costVal; tCostRedeemed += costVal;
                 }
             }
             grouped.set(key, current);
         });
-        return { grouped, spenders, tEmitted, tRedeemed, tExpired, tMoneyRedeemed, totalMoneySpent, creditCount, activeUids, heatmapCount, heatmapRevenue, referralCount };
+        return { grouped, spenders, tEmitted, tRedeemed, tExpired, tMoneyRedeemed, tCostRedeemed, totalMoneySpent, creditCount, activeUids, heatmapCount, heatmapRevenue, referralCount };
     }
 
     async function fetchData() {
@@ -312,8 +314,8 @@ export const MetricsPage = () => {
             });
 
             const realCirculation = Math.max(0, totalSystemPoints - totalVirtualExpired);
-            setTotalStats({ emitted: currentNetEmitted, redeemed: currentResults.tRedeemed, expired: currentResults.tExpired + (isTotal ? totalVirtualExpired : 0), moneyRedeemed: currentResults.tMoneyRedeemed });
-            setPrevTotalStats({ emitted: prevNetEmitted, redeemed: prevResults.tRedeemed, expired: prevResults.tExpired, moneyRedeemed: prevResults.tMoneyRedeemed });
+            setTotalStats({ emitted: currentNetEmitted, redeemed: currentResults.tRedeemed, expired: currentResults.tExpired + (isTotal ? totalVirtualExpired : 0), moneyRedeemed: currentResults.tMoneyRedeemed, costRedeemed: currentResults.tCostRedeemed });
+            setPrevTotalStats({ emitted: prevNetEmitted, redeemed: prevResults.tRedeemed, expired: prevResults.tExpired, moneyRedeemed: prevResults.tMoneyRedeemed, costRedeemed: prevResults.tCostRedeemed });
             setChartData(Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ name, ...data })));
             setPrevChartData(Array.from(prevResults.grouped.entries()).map(([name, data]) => ({ name, ...data })));
 
@@ -499,13 +501,21 @@ export const MetricsPage = () => {
                                 </div>
                                 <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><Sparkles size={32} /></div>
                             </div>
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-blue-100 flex items-center justify-between" title="Equivalente en dinero si todos los clientes canjearan sus puntos hoy al valor actual.">
+                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-blue-100 flex items-center justify-between" title="Equivalente en valor mostrador si todos los clientes canjearan sus puntos acumulados hoy.">
                                 <div>
-                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Deuda Potencial ($)</p>
-                                    <p className="text-4xl font-black text-blue-600">${Math.round(advancedStats?.potentialRevenue || 0).toLocaleString('es-AR')}</p>
-                                    <p className="text-[10px] text-gray-400 mt-1 italic font-bold">Circulando x ${config?.pointValue || 10}</p>
+                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Deuda Potencial (Mostrador)</p>
+                                    <p className="text-3xl font-black text-blue-600">${Math.round(advancedStats?.potentialRevenue || 0).toLocaleString('es-AR')}</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 italic font-bold">Valor Mostrador</p>
                                 </div>
-                                <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl"><DollarSign size={32} /></div>
+                                <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><DollarSign size={28} /></div>
+                            </div>
+                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center justify-between" title="Costo real de productos si todos los clientes canjearan sus puntos acumulados hoy.">
+                                <div>
+                                    <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Deuda Potencial (Costo)</p>
+                                    <p className="text-3xl font-black text-slate-800">${Math.round((advancedStats?.potentialRevenue || 0) * 0.35).toLocaleString('es-AR')}</p>
+                                    <p className="text-[10px] text-slate-400 mt-1 italic font-bold">Costo de Producto</p>
+                                </div>
+                                <div className="p-3 bg-slate-100 text-slate-700 rounded-2xl"><ShoppingBag size={28} /></div>
                             </div>
                         </div>
                     </div>
@@ -607,7 +617,7 @@ export const MetricsPage = () => {
                             <span className="text-[10px] font-black text-white bg-purple-500 px-3 py-1 rounded-full uppercase tracking-widest">Afectado por Filtro</span>
                         </div>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
                             <div className="bg-white p-5 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Puntos Emitidos</p>
@@ -623,6 +633,14 @@ export const MetricsPage = () => {
                                     <TrendIndicator current={totalStats?.moneyRedeemed || 0} prev={prevTotalStats?.moneyRedeemed || 0} />
                                 </div>
                                 <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign size={24} /></div>
+                            </div>
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between" title="Costo real de los productos entregados en el período.">
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Costo de Premios</p>
+                                    <p className="text-2xl font-black text-slate-800">${Math.round(totalStats?.costRedeemed || 0).toLocaleString('es-AR')}</p>
+                                    <TrendIndicator current={totalStats?.costRedeemed || 0} prev={prevTotalStats?.costRedeemed || 0} isRed />
+                                </div>
+                                <div className="p-3 bg-slate-100 text-slate-700 rounded-xl"><ShoppingBag size={24} /></div>
                             </div>
                             <div className="bg-white p-5 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-between">
                                 <div>

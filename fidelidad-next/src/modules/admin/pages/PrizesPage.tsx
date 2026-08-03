@@ -38,6 +38,7 @@ export const PrizesPage = () => {
         active: true,
         imageUrl: '',
         cashValue: 0,
+        internalCost: 0,
         isInternal: false,
         requiresMinimumPurchase: false,
         minimumPurchaseAmount: 0,
@@ -129,6 +130,7 @@ export const PrizesPage = () => {
             active: prize.active,
             imageUrl: prize.imageUrl || '',
             cashValue: prize.cashValue || 0,
+            internalCost: prize.internalCost || 0,
             isInternal: prize.isInternal || false,
             requiresMinimumPurchase: prize.requiresMinimumPurchase || false,
             minimumPurchaseAmount: prize.minimumPurchaseAmount || 0,
@@ -443,6 +445,58 @@ export const PrizesPage = () => {
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
 
+                            {/* Selector de premios de la Calculadora Maestra */}
+                            {!editingPrize && (config?.masterCalculatorSettings?.distribucionNiveles?.length || 0) > 0 && (
+                                <div className="bg-slate-900 text-white p-4 rounded-xl space-y-2 border border-slate-800 shadow-inner">
+                                    <label className="block text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                                        <Sliders size={14} /> Importar desde la Calculadora Maestra
+                                    </label>
+                                    <select
+                                        className="w-full bg-slate-800 text-slate-100 border border-slate-700 rounded-lg p-2.5 text-sm font-bold outline-none focus:border-emerald-500"
+                                        onChange={(e) => {
+                                            const selectedId = e.target.value;
+                                            if (!selectedId) return;
+                                            const nivel = config?.masterCalculatorSettings?.distribucionNiveles?.find(n => n.id === selectedId);
+                                            if (nivel) {
+                                                const isVoucher = (nivel as any).type === 'voucher' || (typeof nivel.nombre === 'string' && nivel.nombre.toLowerCase().includes('voucher'));
+                                                const cashVal = isVoucher ? ((nivel as any).voucherValue || Number(nivel.nombre.replace(/[^0-9]/g, '')) || 0) : ((nivel as any).publicPrice || 0);
+                                                const costVal = isVoucher ? cashVal : ((nivel as any).internalCost || Math.round(cashVal * 0.5));
+                                                const mult = config?.masterCalculatorSettings?.umbralMultiplicador || 7;
+                                                const requiresMin = isVoucher && cashVal > 0;
+                                                const ownMargin = (!isVoucher && cashVal > costVal && cashVal > 0) ? ((cashVal - costVal) / cashVal) : 0.50;
+                                                const minAmt = isVoucher ? (cashVal * mult) : Math.ceil((costVal / Math.max(0.1, ownMargin)) / 100) * 100;
+                                                const bolsa = config?.masterCalculatorSettings?.bolsaMensualPuntos || 0;
+                                                const targetPts = bolsa * ((nivel.pct || 0) / 100);
+                                                const suggestedStock = nivel.costo > 0 && targetPts > 0 ? Math.floor(targetPts / nivel.costo) : 50;
+
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    name: nivel.nombre,
+                                                    pointsRequired: nivel.costo,
+                                                    cashValue: cashVal,
+                                                    internalCost: costVal,
+                                                    stock: suggestedStock > 0 ? suggestedStock : 50,
+                                                    requiresMinimumPurchase: requiresMin,
+                                                    minimumPurchaseAmount: minAmt
+                                                }));
+                                                toast.success(`Cargado: ${nivel.nombre}`);
+                                            }
+                                        }}
+                                        defaultValue=""
+                                    >
+                                        <option value="" disabled>-- Elegir premio preconfigurado --</option>
+                                        {config?.masterCalculatorSettings?.distribucionNiveles?.map((n) => (
+                                            <option key={n.id} value={n.id}>
+                                                {n.nombre} ({n.costo} pts - {n.pct}% del presupuesto)
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[10px] text-slate-400">
+                                        Selecciona una opción para autocompletar el nombre, puntos, valor y compra mínima. O completa los campos abajo si deseas inventar un premio nuevo.
+                                    </p>
+                                </div>
+                            )}
+
                             {/* Nombre y Desc */}
                             <div className="space-y-4">
                                 <div>
@@ -467,7 +521,7 @@ export const PrizesPage = () => {
                                 </div>
                             </div>
 
-                            {/* Grid 2Cols */}
+                            {/* Grid 2Cols: Puntos & Stock */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Puntos Requeridos</label>
@@ -495,27 +549,36 @@ export const PrizesPage = () => {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Valor en Dinero (Estimado)</label>
-                                <div className="relative">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</div>
-                                    <input
-                                        type="number"
-                                        className="w-full pl-8 rounded-lg border-blue-200 border p-3 font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-100 bg-blue-50/20"
-                                        value={formData.cashValue || ''}
-                                        onChange={e => {
-                                            const newCashValue = parseInt(e.target.value) || 0;
-                                            let newMinPurchase = formData.minimumPurchaseAmount;
-                                            if (formData.requiresMinimumPurchase) {
-                                                const mult = config?.masterCalculatorSettings?.umbralMultiplicador || 7;
-                                                newMinPurchase = newCashValue * mult;
-                                            }
-                                            setFormData({ ...formData, cashValue: newCashValue, minimumPurchaseAmount: newMinPurchase });
-                                        }}
-                                        placeholder="Ej: 5000"
-                                    />
+                            {/* Grid 2Cols: Precio Público & Costo Interno */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Precio Público / Valor ($)</label>
+                                    <div className="relative">
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</div>
+                                        <input
+                                            type="number"
+                                            className="w-full pl-8 rounded-lg border-blue-200 border p-3 font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-100 bg-blue-50/20"
+                                            value={formData.cashValue || ''}
+                                            onChange={e => setFormData({ ...formData, cashValue: parseInt(e.target.value) || 0 })}
+                                            placeholder="Ej: 7300"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-1 ml-1">Valor percibido / Métrica comercial.</p>
                                 </div>
-                                <p className="text-[10px] text-gray-400 mt-1 ml-1">Para reportes de "Dinero Devuelto".</p>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Costo Real Interno ($)</label>
+                                    <div className="relative">
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</div>
+                                        <input
+                                            type="number"
+                                            className="w-full pl-8 rounded-lg border-slate-200 border p-3 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-100 bg-slate-50"
+                                            value={formData.internalCost || ''}
+                                            onChange={e => setFormData({ ...formData, internalCost: parseInt(e.target.value) || 0 })}
+                                            placeholder="Ej: 3566"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-1 ml-1">Costo de insumos de cocina.</p>
+                                </div>
                             </div>
 
 
@@ -562,14 +625,39 @@ export const PrizesPage = () => {
                                 <div className="flex flex-col gap-2 p-3 bg-orange-50 rounded-xl border border-orange-100">
                                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => {
                                         const newToggled = !formData.requiresMinimumPurchase;
-                                        // Sugerencia basada en el UMBRAL MULTIPLICADOR (Solapa C de la Calculadora)
-                                        const mult = config?.masterCalculatorSettings?.umbralMultiplicador || 7;
-                                        const newVal = newToggled ? ((formData.cashValue || 0) * mult) : 0;
+                                        const isVoucher = formData.name.toLowerCase().includes('voucher');
+                                        let newVal = 0;
+                                        if (newToggled) {
+                                            if (isVoucher) {
+                                                const mult = config?.masterCalculatorSettings?.umbralMultiplicador || 7;
+                                                newVal = (formData.cashValue || 0) * mult;
+                                            } else {
+                                                // Mantenimiento de costo en Casa de Pastas:
+                                                // Compra Mínima = Costo Interno / Margen de Ganancia del Negocio (70%)
+                                                const nivelPreset = config?.masterCalculatorSettings?.distribucionNiveles?.find(
+                                                    n => n.nombre.toLowerCase() === formData.name.toLowerCase()
+                                                );
+                                                const internalCost = formData.internalCost || (nivelPreset as any)?.internalCost || ((formData.cashValue || 0) * 0.5);
+                                                const ownMargin = (formData.cashValue > internalCost && formData.cashValue > 0) ? ((formData.cashValue - internalCost) / formData.cashValue) : 0.50;
+                                                const rawMin = internalCost > 0 ? (internalCost / Math.max(0.1, ownMargin)) : (formData.cashValue || 0);
+                                                newVal = Math.ceil(rawMin / 100) * 100;
+                                            }
+                                        }
                                         setFormData({ ...formData, requiresMinimumPurchase: newToggled, minimumPurchaseAmount: newVal });
                                     }}>
                                         <div className="flex-1">
-                                            <h4 className="text-sm font-bold text-orange-800">Requiere Compra Mínima</h4>
-                                            <p className="text-[10px] text-orange-600">Exige una compra mínima simultánea para poder canjearlo.</p>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="text-sm font-bold text-orange-800">Requiere Compra Mínima</h4>
+                                                <span className="text-[9px] font-black uppercase bg-orange-200 text-orange-900 px-2 py-0.5 rounded">
+                                                    {formData.name.toLowerCase().includes('voucher') ? 'Recomendado para Vouchers' : 'Opcional en Productos'}
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-orange-600 mt-0.5">
+                                                {formData.name.toLowerCase().includes('voucher')
+                                                    ? 'Exige una compra mínima simultánea para aplicar el descuento del voucher.'
+                                                    : 'Opcional: Exige una compra mínima en salsas/quesos para cubrir 100% el costo de los insumos del producto.'
+                                                }
+                                            </p>
                                         </div>
                                         <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.requiresMinimumPurchase ? 'bg-orange-600' : 'bg-gray-200'}`}>
                                             <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${formData.requiresMinimumPurchase ? 'translate-x-5' : 'translate-x-1'}`} />
@@ -586,7 +674,35 @@ export const PrizesPage = () => {
                                                     onChange={e => setFormData({ ...formData, minimumPurchaseAmount: Number(e.target.value) })}
                                                     className="w-full px-3 py-2 bg-white border border-orange-200 rounded-lg text-sm font-bold outline-none focus:border-orange-500"
                                                 />
-                                                <p className="text-[10px] text-orange-500 mt-1">En el catálogo se mostrará: "Para canje compra mínima de ${Number(formData.minimumPurchaseAmount).toLocaleString('es-AR')}"</p>
+                                                {(() => {
+                                                    const isVoucher = formData.name.toLowerCase().includes('voucher');
+                                                    const internalCost = formData.internalCost || ((formData.cashValue || 0) * 0.5);
+                                                    const ownMargin = (formData.cashValue > internalCost && formData.cashValue > 0) ? ((formData.cashValue - internalCost) / formData.cashValue) : 0.50;
+                                                    const rawMin = internalCost > 0 ? (internalCost / Math.max(0.1, ownMargin)) : (formData.cashValue || 0);
+                                                    const suggestedMin = Math.ceil(rawMin / 100) * 100;
+                                                    const marginPct = (ownMargin * 100).toFixed(1);
+                                                    
+                                                    if (isVoucher) {
+                                                        return (
+                                                            <p className="text-[10px] text-orange-600 mt-1 font-medium">
+                                                                💡 Sugerido para Voucher: Multiplicador x7 (${suggestedMin.toLocaleString('es-AR')}). Puedes modificar este monto manualmente.
+                                                            </p>
+                                                        );
+                                                    }
+                                                    
+                                                    return (
+                                                        <div className="mt-1 bg-white/80 p-2 rounded-lg border border-orange-200/60">
+                                                            <p className="text-[10px] text-orange-800 font-bold">
+                                                                💡 Sugerido por Calculadora: ${suggestedMin.toLocaleString('es-AR')}
+                                                            </p>
+                                                            {internalCost > 0 && (
+                                                                <p className="text-[9px] text-orange-700/80 mt-0.5 font-medium">
+                                                                    Fórmula: Costo ${internalCost.toLocaleString('es-AR')} / Margen {marginPct}% = ${Math.round(rawMin).toLocaleString('es-AR')} → Sugerido ${suggestedMin.toLocaleString('es-AR')} (Puedes cambiarlo manualmente arriba)
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                             <div className="flex items-center gap-3 cursor-pointer p-2 bg-white/50 rounded-lg" onClick={() => {
                                                 setFormData({ ...formData, allowEmployeeOverride: !formData.allowEmployeeOverride });

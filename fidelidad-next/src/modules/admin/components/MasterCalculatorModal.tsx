@@ -66,6 +66,41 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
     const valorPuntoReal = bolsaPuntosMensual > 0 ? presupuestoMensual / bolsaPuntosMensual : 0;
     const costoMercaderia = 100 - margenBruto;
 
+    // Combinar todos los items para el Ecualizador
+    const allItems = useMemo(() => {
+        const items = [];
+        for (const p of physicalRewards) {
+            const isOverridden = p.manualPointsOverride !== undefined;
+            const autoPoints = moneyPerPoint > 0 && p.perceivedReturn > 0 ? Math.ceil((p.publicPrice / (p.perceivedReturn / 100)) / moneyPerPoint) : 0;
+            const requiredPoints = isOverridden ? p.manualPointsOverride! : autoPoints;
+            items.push({ id: p.id, name: p.name, type: 'physical' as const, pointsCost: requiredPoints });
+        }
+        for (const v of vouchers) {
+            const isOverridden = v.manualPointsOverride !== undefined;
+            const autoPoints = valorPuntoReal > 0 ? Math.ceil(v.value / valorPuntoReal) : 0;
+            const requiredPoints = isOverridden ? v.manualPointsOverride! : autoPoints;
+            items.push({ id: v.id, name: `Voucher $${v.value}`, type: 'voucher' as const, pointsCost: requiredPoints });
+        }
+        return items;
+    }, [physicalRewards, vouchers, moneyPerPoint, valorPuntoReal]);
+
+    // Valor Entregado al Mostrador (Suma basada en distribución)
+    const valorMostradorTotal = useMemo(() => {
+        let sum = 0;
+        allItems.forEach(item => {
+            const pct = (distributionPct[item.id] || 0) / 100;
+            if (pct <= 0) return;
+            const phys = physicalRewards.find(p => p.id === item.id);
+            const vouch = vouchers.find(v => v.id === item.id);
+            const publicVal = phys ? phys.publicPrice : (vouch ? vouch.value : 0);
+            const itemBudget = presupuestoMensual * pct;
+            const costVal = phys ? (phys.internalCost || phys.publicPrice * 0.3) : (vouch ? vouch.value : 1);
+            const count = costVal > 0 ? (itemBudget / costVal) : 0;
+            sum += count * publicVal;
+        });
+        return Math.round(sum);
+    }, [allItems, distributionPct, physicalRewards, vouchers, presupuestoMensual]);
+
     useEffect(() => {
         if (isOpen && config) {
             setMoneyPerPoint(config.pointsMoneyBase || 1000);
@@ -76,29 +111,41 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
                 if (config.masterCalculatorSettings.facturacionEstimada) setFacturacionBruta(config.masterCalculatorSettings.facturacionEstimada);
                 if (config.masterCalculatorSettings.umbralMultiplicador) setUmbralMultiplicador(config.masterCalculatorSettings.umbralMultiplicador);
                 
-                // Si ya teníamos niveles, podríamos tratar de mapearlos de vuelta si los IDs coinciden,
-                // pero por ahora mantenemos el estado default para simplificar el mock del dashboard.
+                const niveles = config.masterCalculatorSettings.distribucionNiveles;
+                if (niveles && niveles.length > 0) {
+                    const newPhysical: PhysicalReward[] = [];
+                    const newVouchers: VoucherReward[] = [];
+                    const newDist: Record<string, number> = {};
+
+                    niveles.forEach((n: any) => {
+                        newDist[n.id] = n.pct ?? 0;
+                        const isVoucher = n.type === 'voucher' || (typeof n.nombre === 'string' && n.nombre.toLowerCase().includes('voucher')) || n.voucherValue !== undefined;
+                        if (isVoucher) {
+                            const val = n.voucherValue || Number((n.nombre || '').replace(/[^0-9]/g, '')) || 1000;
+                            newVouchers.push({
+                                id: n.id,
+                                value: val,
+                                manualPointsOverride: n.manualPointsOverride
+                            });
+                        } else {
+                            newPhysical.push({
+                                id: n.id,
+                                name: n.nombre,
+                                publicPrice: n.publicPrice || 1000,
+                                perceivedReturn: n.perceivedReturn || 10,
+                                internalCost: n.internalCost || 300,
+                                manualPointsOverride: n.manualPointsOverride
+                            });
+                        }
+                    });
+
+                    setPhysicalRewards(newPhysical);
+                    setVouchers(newVouchers);
+                    setDistributionPct(newDist);
+                }
             }
         }
     }, [isOpen, config]);
-
-    // Combinar todos los items para el Ecualizador
-    const allItems = useMemo(() => {
-        const items = [];
-        for (const p of physicalRewards) {
-            const isOverridden = p.manualPointsOverride !== undefined;
-            const autoPoints = moneyPerPoint > 0 && p.perceivedReturn > 0 ? Math.ceil((p.publicPrice / (p.perceivedReturn / 100)) / moneyPerPoint) : 0;
-            const requiredPoints = isOverridden ? p.manualPointsOverride! : autoPoints;
-            items.push({ id: p.id, name: p.name, type: 'physical', pointsCost: requiredPoints });
-        }
-        for (const v of vouchers) {
-            const isOverridden = v.manualPointsOverride !== undefined;
-            const autoPoints = valorPuntoReal > 0 ? Math.ceil(v.value / valorPuntoReal) : 0;
-            const requiredPoints = isOverridden ? v.manualPointsOverride! : autoPoints;
-            items.push({ id: v.id, name: `Voucher $${v.value}`, type: 'voucher', pointsCost: requiredPoints });
-        }
-        return items;
-    }, [physicalRewards, vouchers, moneyPerPoint, valorPuntoReal]);
 
     // Total % usado
     const totalPctUsed = allItems.reduce((acc, item) => acc + (distributionPct[item.id] || 0), 0);
@@ -114,12 +161,31 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
     };
 
     const handleSave = () => {
-        const distribucionFinal = allItems.map(item => ({
-            id: item.id,
-            nombre: item.name,
-            costo: item.pointsCost,
-            pct: distributionPct[item.id] || 0
-        }));
+        const distribucionFinal = allItems.map(item => {
+            const isPhysical = item.type === 'physical';
+            const phys = isPhysical ? physicalRewards.find(p => p.id === item.id) : null;
+            const vouch = !isPhysical ? vouchers.find(v => v.id === item.id) : null;
+
+            const res: any = {
+                id: item.id,
+                nombre: item.name,
+                costo: item.pointsCost || 0,
+                pct: distributionPct[item.id] || 0,
+                type: item.type
+            };
+
+            if (isPhysical && phys) {
+                if (phys.publicPrice !== undefined) res.publicPrice = phys.publicPrice;
+                if (phys.perceivedReturn !== undefined) res.perceivedReturn = phys.perceivedReturn;
+                if (phys.internalCost !== undefined) res.internalCost = phys.internalCost;
+                if (phys.manualPointsOverride !== undefined) res.manualPointsOverride = phys.manualPointsOverride;
+            } else if (!isPhysical && vouch) {
+                if (vouch.value !== undefined) res.voucherValue = vouch.value;
+                if (vouch.manualPointsOverride !== undefined) res.manualPointsOverride = vouch.manualPointsOverride;
+            }
+
+            return res;
+        });
 
         onSave({
             pointCalculationMethod: 'manual',
@@ -168,13 +234,15 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
                     <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-800 bg-slate-800/50">
                         <div className="p-4">
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2">
-                                Presupuesto Mensual
+                                Presupuesto (Costo)
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full ${presupuestoMode==='pct' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}>
                                     {presupuestoMode === 'pct' ? 'Automático' : 'Fijo'}
                                 </span>
                             </p>
                             <p className={`text-2xl font-black ${presupuestoMode==='pct' ? 'text-emerald-400' : 'text-blue-400'}`}>${Math.floor(presupuestoMensual).toLocaleString()}</p>
-                            <p className="text-[10px] text-slate-500 mt-1">Límite de dinero a repartir en premios</p>
+                            <p className="text-[10px] text-slate-400 mt-1 font-medium">
+                                ≈ <span className="text-emerald-300 font-bold">${valorMostradorTotal.toLocaleString('es-AR')}</span> en Valor Mostrador
+                            </p>
                         </div>
                         <div className="p-4">
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Bolsa de Puntos (Canjeable)</p>
@@ -389,16 +457,41 @@ export const MasterCalculatorModal = ({ isOpen, onClose, config, onSave }: Maste
                                                             <p className="text-xs font-black text-slate-700">${Math.floor(requiredSpend).toLocaleString()}</p>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Costo s/Facturación</p>
-                                                        <p className={`text-xs font-black ${realImpact <= 5 ? 'text-emerald-500' : realImpact <= 10 ? 'text-amber-500' : 'text-red-500'}`}>
-                                                            {realImpact.toFixed(1)}% 
-                                                        </p>
+                                                        <div className="text-right">
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Costo s/Facturación</p>
+                                                            <p className={`text-xs font-black ${realImpact <= 5 ? 'text-emerald-500' : realImpact <= 10 ? 'text-amber-500' : 'text-red-500'}`}>
+                                                                {realImpact.toFixed(1)}% 
+                                                            </p>
+                                                        </div>
                                                     </div>
+
+                                                    {/* Compra Mínima Opcional Sugerida (Basada en Margen del Producto) */}
+                                                    {(() => {
+                                                        const ownMargin = reward.publicPrice > reward.internalCost && reward.publicPrice > 0 ? (reward.publicPrice - reward.internalCost) / reward.publicPrice : 0.50;
+                                                        const rawMin = reward.internalCost > 0 ? (reward.internalCost / Math.max(0.1, ownMargin)) : (reward.publicPrice || 0);
+                                                        const suggestedMin = Math.ceil(rawMin / 100) * 100;
+                                                        const marginPct = (ownMargin * 100).toFixed(1);
+                                                        return (
+                                                            <div className="mt-3 pt-2 border-t border-slate-100 bg-orange-50/70 px-3 py-1.5 rounded-xl border border-orange-100">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-[10px] font-bold text-orange-800">
+                                                                        🛒 Compra Mínima Opcional (Sugerida):
+                                                                    </span>
+                                                                    <span className="text-xs font-black text-orange-700">
+                                                                        ${suggestedMin.toLocaleString('es-AR')}
+                                                                    </span>
+                                                                </div>
+                                                                {reward.internalCost > 0 && (
+                                                                    <p className="text-[9px] text-orange-800/80 mt-1 font-medium leading-tight">
+                                                                        Fórmula: Costo ${reward.internalCost.toLocaleString('es-AR')} / Margen {marginPct}% = ${Math.round(rawMin).toLocaleString('es-AR')} → Redondeado ${suggestedMin.toLocaleString('es-AR')}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
-                                            </div>
-                                        )
-                                    })}
+                                            )
+                                        })}
 
                                     <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-3 flex items-center gap-3">
                                         <input 

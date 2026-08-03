@@ -102,6 +102,18 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     }
 };
 
+function removeUndefined(obj: any): any {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(removeUndefined);
+    const clean: any = {};
+    for (const key of Object.keys(obj)) {
+        if (obj[key] !== undefined) {
+            clean[key] = removeUndefined(obj[key]);
+        }
+    }
+    return clean;
+}
+
 export const ConfigService = {
     async get() {
         try {
@@ -146,7 +158,8 @@ export const ConfigService = {
     async save(config: AppConfig) {
         try {
             const ref = doc(db, CONFIG_DOC_PATH);
-            await setDoc(ref, config, { merge: true });
+            const cleanConfig = removeUndefined(config);
+            await setDoc(ref, cleanConfig, { merge: true });
             await AuditService.log('config_mgmt', `Configuración del sistema actualizada`, [
                 { action: 'config_updated', status: 'success', info: 'Se guardaron cambios en la configuración general' }
             ]);

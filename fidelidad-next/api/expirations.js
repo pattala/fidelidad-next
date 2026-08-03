@@ -54,6 +54,7 @@ export default async function handler(req, res) {
             // Para el pronóstico, usamos un valor proyectado o el manual como base
             pointValue = config.pointValue || 10;
         }
+        pointValue = Math.round(pointValue * 100) / 100;
 
         // CONSULTA ULTRA-SEGURA: Usamos el cache 'nextExpirationDate' de los usuarios
         const usersSnap = await db.collection('users')

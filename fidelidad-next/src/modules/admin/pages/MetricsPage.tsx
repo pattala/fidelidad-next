@@ -287,7 +287,7 @@ export const MetricsPage = () => {
                     prizeCount++;
                 }
             });
-            const pointValueReal = prizeCount > 0 ? (totalRatio / prizeCount) : (appConfig?.pointValue || 10);
+            const pointValueReal = prizeCount > 0 ? (Math.round((totalRatio / prizeCount) * 100) / 100) : (appConfig?.pointValue || 10);
             const calcMethod = appConfig?.pointCalculationMethod || (appConfig?.useAutomaticPointValue ? 'average' : 'manual');
             
             const currentResults = processStats(currentMovements, appConfig);
@@ -351,10 +351,12 @@ export const MetricsPage = () => {
                 }
             });
 
-            // Determinar valor del punto efectivo final según método
-            let effectivePV = appConfig?.pointValue || 10;
-            if (calcMethod === 'average') effectivePV = pointValueReal;
-            else if (calcMethod === 'budget' && totalSystemPoints > 0) effectivePV = (appConfig?.pointValueBudget || 0) / totalSystemPoints;
+            // Determinar valor del punto efectivo final según método (redondeado a 2 decimales exactos)
+            let rawPV = appConfig?.pointValue || 10;
+            if (calcMethod === 'average') rawPV = pointValueReal;
+            else if (calcMethod === 'budget' && totalSystemPoints > 0) rawPV = (appConfig?.pointValueBudget || 0) / totalSystemPoints;
+
+            const effectivePV = Math.round(rawPV * 100) / 100;
 
             // Asignar dinero proyectado en Cash Flow con el valor del punto efectivo
             Object.values(forecastIntervals).forEach(b => {

@@ -97,7 +97,7 @@ export const DashboardPage = () => {
                     count++;
                 }
             });
-            setStats(prev => ({ ...prev, pointValueReal: (count > 0 ? (totalRatio / count) : 0) }));
+            setStats(prev => ({ ...prev, pointValueReal: (count > 0 ? (Math.round((totalRatio / count) * 100) / 100) : 0) }));
         });
 
         const userCache = new Map();
@@ -192,6 +192,7 @@ export const DashboardPage = () => {
         let val = config.pointValue || 10;
         if (method === 'average') val = stats.pointValueReal;
         else if (method === 'budget') val = stats.totalPoints > 0 ? (config.pointValueBudget / stats.totalPoints) : 0;
+        val = Math.round(val * 100) / 100;
         
         setStats(prev => ({
             ...prev,

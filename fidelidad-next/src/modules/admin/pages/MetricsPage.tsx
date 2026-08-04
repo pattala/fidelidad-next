@@ -315,7 +315,8 @@ export const MetricsPage = () => {
             const forecastIntervals: Record<string, { label: string, points: number, money: number, count: number }> = {
                 short:  { label: 'Próximos 7 días', points: 0, money: 0, count: 0 },
                 medium: { label: '8 a 30 días',      points: 0, money: 0, count: 0 },
-                long:   { label: '31 a 90 días',      points: 0, money: 0, count: 0 }
+                long:   { label: '31 a 90 días',      points: 0, money: 0, count: 0 },
+                future: { label: 'Más de 90 días',    points: 0, money: 0, count: 0 }
             };
 
             allUsersSnap.forEach(uDoc => {
@@ -365,12 +366,24 @@ export const MetricsPage = () => {
                     if (dDate && pts > 0) expItems.push({ date: dDate, points: pts });
                 }
 
+                let userAllocatedPoints = 0;
+                let userVirtualExpired = 0;
+
                 expItems.forEach(item => {
                     const itemDateStr = `${item.date.getFullYear()}-${String(item.date.getMonth() + 1).padStart(2, '0')}-${String(item.date.getDate()).padStart(2, '0')}`;
                     if (itemDateStr < startOfTodayStr) {
-                        totalVirtualExpired += Math.min(uPoints, item.points);
-                    } else {
-                        if (itemDateStr <= next30Str) totalProjectedNext30 += item.points;
+                        const expPts = Math.min(uPoints, item.points);
+                        userVirtualExpired += expPts;
+                    }
+                });
+
+                totalVirtualExpired += userVirtualExpired;
+                const userActivePoints = Math.max(0, uPoints - userVirtualExpired);
+
+                expItems.forEach(item => {
+                    const itemDateStr = `${item.date.getFullYear()}-${String(item.date.getMonth() + 1).padStart(2, '0')}-${String(item.date.getDate()).padStart(2, '0')}`;
+                    if (itemDateStr >= startOfTodayStr) {
+                        if (itemDateStr <= next30Str) totalProjectedNext30 += Math.min(userActivePoints, item.points);
                         const itemDayStart = new Date(item.date.getFullYear(), item.date.getMonth(), item.date.getDate());
                         const diffDays = Math.round((itemDayStart.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24));
                         if (diffDays >= 0) {
@@ -378,13 +391,27 @@ export const MetricsPage = () => {
                             if (diffDays <= 7) bucket = forecastIntervals.short;
                             else if (diffDays <= 30) bucket = forecastIntervals.medium;
                             else if (diffDays <= 90) bucket = forecastIntervals.long;
+                            else bucket = forecastIntervals.future;
+
                             if (bucket) {
-                                bucket.points += item.points;
-                                bucket.count++;
+                                const availableForUser = Math.max(0, userActivePoints - userAllocatedPoints);
+                                const ptsToAdd = Math.min(item.points, availableForUser);
+                                if (ptsToAdd > 0) {
+                                    bucket.points += ptsToAdd;
+                                    bucket.count++;
+                                    userAllocatedPoints += ptsToAdd;
+                                }
                             }
                         }
                     }
                 });
+
+                // Asignar los puntos del usuario que no expiran en los primeros 90 días al casillero 'future' (Más de 90 días)
+                const unallocatedPoints = Math.max(0, userActivePoints - userAllocatedPoints);
+                if (unallocatedPoints > 0) {
+                    forecastIntervals.future.points += unallocatedPoints;
+                    forecastIntervals.future.count++;
+                }
             });
 
             // Determinar valor del punto efectivo final según método (redondeado a 2 decimales exactos)
@@ -631,14 +658,14 @@ export const MetricsPage = () => {
                             {forecastData ? (
                                 <>
                                     <div className="flex flex-wrap gap-8 items-center">
-                                        {(forecastData.intervals || []).filter((i: any) => i.key !== 'future').map((interval: any) => (
+                                        {(forecastData.intervals || []).map((interval: any) => (
                                             <div key={interval.key} className="flex flex-col">
                                                 <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">{interval.label}</p>
                                                 <p className="text-2xl font-black text-gray-800">
                                                     {(interval.points || 0).toLocaleString()} 
                                                     <span className="text-xs text-gray-400 ml-1 font-bold">pts</span>
                                                 </p>
-                                                <p className={`text-sm font-bold ${interval.key === 'short' ? 'text-red-500' : 'text-orange-500'}`}>
+                                                <p className={`text-sm font-bold ${interval.key === 'short' ? 'text-red-500' : interval.key === 'future' ? 'text-indigo-600' : 'text-orange-500'}`}>
                                                     ≈ ${Math.round(interval.money || 0).toLocaleString()}
                                                 </p>
                                             </div>

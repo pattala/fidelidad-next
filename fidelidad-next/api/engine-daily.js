@@ -103,8 +103,8 @@ export default async function handler(req, res) {
             executorDetail = `SIMULADOR (${executorDetail.replace('SISTEMA ', '')})`;
         }
 
-        // V.1.4.60: Bypass de Seguridad para Gatillos Conocidos (Si no hay SECRET o viene de QStash/Extensión)
-        const isAuthorized = cronHeader || qstashHeader || (triggerSource === 'qstash') || (triggerSource === 'extension') || (authHeader && SECRET && authHeader.includes(SECRET));
+        // V.1.4.60: Bypass de Seguridad para Gatillos Conocidos (Dashboard, QStash, Extensión, Cron)
+        const isAuthorized = cronHeader || qstashHeader || (triggerSource === 'qstash') || (triggerSource === 'extension') || (triggerSource === 'dashboard') || (triggerSource === 'sidebar_manual') || (authHeader && SECRET && authHeader.includes(SECRET));
         
         if (!isAuthorized) {
             return res.status(401).json({ ok: false, error: "Unauthorized" });

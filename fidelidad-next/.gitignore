@@ -50,6 +50,13 @@ backups/
 *.zip
 .vercel
 .env*.local
+# Temporary Scratch & Audit Files
+scratch/
+audit-report-*.html
+check_db.js
+get_logs.js
+test-logs*
+60
 .dev_creds.json
 .main_creds.json
 creds/

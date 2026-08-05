@@ -48,11 +48,11 @@ export async function updateNextExpirationDate(db, userId, referenceDate = null)
         const nextAmount = nextDateKey ? (expirationMap.get(nextDateKey) || 0) : 0;
         const isoDate = nextDateKey || null;
 
-        // --- Top 3 detalles ordenados por fecha ---
+        // --- Top 50 detalles ordenados por fecha ---
         const expirationDetails = Array.from(expirationMap.entries())
             .map(([date, points]) => ({ date: admin.firestore.Timestamp.fromDate(new Date(date + 'T12:00:00')), points }))
             .sort((a, b) => a.date.toMillis() - b.date.toMillis())
-            .slice(0, 3);
+            .slice(0, 50);
 
         await db.collection('users').doc(userId).update({
             nextExpirationDate: isoDate,

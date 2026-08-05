@@ -150,7 +150,7 @@ export const ExpirationService = {
                 nextAmount = sortedEntries[0].points;
             }
 
-            const expirationDetails = sortedEntries.slice(0, 3).map(entry => ({
+            const expirationDetails = sortedEntries.slice(0, 50).map(entry => ({
                 date: Timestamp.fromDate(entry.date),
                 points: entry.points
             }));

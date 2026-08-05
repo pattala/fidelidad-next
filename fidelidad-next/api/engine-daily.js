@@ -117,6 +117,7 @@ export default async function handler(req, res) {
         const m = String(referenceDate.getMonth() + 1).padStart(2, '0');
         const d = String(referenceDate.getDate()).padStart(2, '0');
         const todayStr = `${y}-${m}-${d}`;
+        const currentHour = referenceDate.getHours();
         
         // Validaciones de Ventana Horaria y Gatillos (Master Control)
         const startConfig = config.messaging?.engineAllowedStartHour ?? 6;

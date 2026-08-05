@@ -616,16 +616,28 @@
 
         <!-- ACCIONES RÁPIDAS -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
-            <button class="btn-primary" style="background: var(--accent); margin: 0; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);" onclick="runAuditFromUI()">
+            <button class="btn-primary" 
+                    title="Ejecuta la suite integral de 45 pruebas automáticas (Base de Datos, APIs, Auth, Cashflow y Seguridad) sobre el cliente seleccionado y genera el reporte HTML." 
+                    style="background: var(--accent); margin: 0; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);" 
+                    onclick="runAuditFromUI()">
                 ⚡ Ejecutar 45 Pruebas de Auditoría
             </button>
-            <button class="btn-primary" style="background: var(--primary); margin: 0; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);" onclick="runBackupFromUI()">
+            <button class="btn-primary" 
+                    title="Exporta todas las colecciones de Firestore del cliente seleccionado a un archivo JSON de respaldo descargable en la carpeta /backups." 
+                    style="background: var(--primary); margin: 0; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);" 
+                    onclick="runBackupFromUI()">
                 📦 Backup Local JSON
             </button>
-            <button class="btn-primary" style="background: #f59e0b; margin: 0; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);" onclick="runCleanupFromUI()">
+            <button class="btn-primary" 
+                    title="Purga registros antiguos de audit_logs y ejecuciones de más de 60 días para mantener la base de datos liviana y optimizada." 
+                    style="background: #f59e0b; margin: 0; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);" 
+                    onclick="runCleanupFromUI()">
                 🧹 Limpieza de Registros (>60 días)
             </button>
-            <button class="btn-primary" style="background: #8b5cf6; margin: 0; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);" onclick="runBuildFromUI()">
+            <button class="btn-primary" 
+                    title="Ejecuta 'npm run build' para asegurar que no existan errores de TypeScript, imports o sintaxis antes de publicar a Producción." 
+                    style="background: #8b5cf6; margin: 0; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);" 
+                    onclick="runBuildFromUI()">
                 🔨 Verificar Compilación Next.js
             </button>
         </div>
@@ -639,7 +651,10 @@
                 <select id="restoreBackupSelect" style="flex: 1; padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: var(--text-main); font-size: 14px; cursor: pointer;">
                     <option value="">Cargando backups...</option>
                 </select>
-                <button class="btn-primary" style="background: #ef4444; margin: 0; width: auto; padding: 0 24px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" onclick="runRestoreFromUI()">
+                <button class="btn-primary" 
+                        title="Restaura una copia de seguridad JSON seleccionada sobre la base de datos de Firebase del cliente activo." 
+                        style="background: #ef4444; margin: 0; width: auto; padding: 0 24px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" 
+                        onclick="runRestoreFromUI()">
                     📥 Restaurar a Firebase
                 </button>
             </div>
@@ -648,7 +663,10 @@
 
         <!-- REPORTE HTML BOTÓN -->
         <div id="reportActionContainer" style="display: none; margin-bottom: 20px;">
-            <button class="btn-primary" style="background: #10b981; width: 100%; font-size: 15px; padding: 14px; box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);" onclick="openAuditReportModal()">
+            <button class="btn-primary" 
+                    title="Abre el reporte visual generado por la auditoría directamente en tu navegador." 
+                    style="background: #10b981; width: 100%; font-size: 15px; padding: 14px; box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);" 
+                    onclick="openAuditReportModal()">
                 📄 Abrir Reporte HTML Interactivo del Cliente
             </button>
         </div>

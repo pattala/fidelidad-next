@@ -1300,6 +1300,8 @@ ${rows}
 
     const reportPath = path.resolve(__dirname, `../audit-report-${envName}.html`);
     fs.writeFileSync(reportPath, html, 'utf8');
+    const latestPath = path.resolve(__dirname, '../audit-report-latest.html');
+    fs.writeFileSync(latestPath, html, 'utf8');
     console.log(`\n📄 Reporte HTML generado: ${reportPath}\n`);
 
     process.exit(failed === 0 ? 0 : 1);

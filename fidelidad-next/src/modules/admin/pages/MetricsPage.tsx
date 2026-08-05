@@ -323,9 +323,28 @@ export const MetricsPage = () => {
                 const u = uDoc.data(); if (u.role === 'admin') return;
                 const uPoints = Number(u.points || 0); totalSystemPoints += uPoints;
                 
+                // Helper robusto para parsear cualquier formato de fecha en Firestore o JSON
+                const parseAnyDate = (val: any): Date | null => {
+                    if (!val) return null;
+                    if (typeof val.toDate === 'function') return val.toDate();
+                    if (val instanceof Date) return val;
+                    if (typeof val === 'number') return new Date(val);
+                    if (typeof val === 'object' && val._seconds) return new Date(val._seconds * 1000);
+                    if (typeof val === 'object' && val.seconds) return new Date(val.seconds * 1000);
+                    if (typeof val === 'string') {
+                        const parts = val.split('T')[0].split('-');
+                        if (parts.length === 3) {
+                            return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+                        }
+                        const parsed = new Date(val);
+                        if (!isNaN(parsed.getTime())) return parsed;
+                    }
+                    return null;
+                };
+
                 // Cálculo de clientes dormidos (V.1.1.8 - con fallback de registro)
-                const lastPurchase = u.lastPurchaseDate?.toDate ? u.lastPurchaseDate.toDate() : (u.lastPurchaseDate ? new Date(u.lastPurchaseDate) : null);
-                const registration = u.createdAt?.toDate ? u.createdAt.toDate() : (u.createdAt ? new Date(u.createdAt) : null);
+                const lastPurchase = parseAnyDate(u.lastPurchaseDate);
+                const registration = parseAnyDate(u.createdAt);
                 const lastActivity = lastPurchase || registration;
                 
                 if (!lastActivity || lastActivity < dormantThresholdDate) {
@@ -336,32 +355,12 @@ export const MetricsPage = () => {
                 const expItems: Array<{ date: Date, points: number }> = [];
                 if (Array.isArray(u.expirationDetails) && u.expirationDetails.length > 0) {
                     u.expirationDetails.forEach((det: any) => {
-                        let dDate: Date | null = null;
-                        if (det.date?.toDate) dDate = det.date.toDate();
-                        else if (det.date instanceof Date) dDate = det.date;
-                        else if (typeof det.date === 'string') {
-                            const parts = det.date.split('T')[0].split('-');
-                            if (parts.length === 3) dDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
-                            else {
-                                const parsed = new Date(det.date);
-                                if (!isNaN(parsed.getTime())) dDate = parsed;
-                            }
-                        }
+                        const dDate = parseAnyDate(det.date);
                         const pts = Number(det.points || 0);
                         if (dDate && pts > 0) expItems.push({ date: dDate, points: pts });
                     });
                 } else if (u.nextExpirationDate && Number(u.nextExpirationAmount || 0) > 0) {
-                    let dDate: Date | null = null;
-                    if (typeof u.nextExpirationDate.toDate === 'function') dDate = u.nextExpirationDate.toDate();
-                    else if (u.nextExpirationDate instanceof Date) dDate = u.nextExpirationDate;
-                    else if (typeof u.nextExpirationDate === 'string') {
-                        const parts = u.nextExpirationDate.split('T')[0].split('-');
-                        if (parts.length === 3) dDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
-                        else {
-                            const parsed = new Date(u.nextExpirationDate);
-                            if (!isNaN(parsed.getTime())) dDate = parsed;
-                        }
-                    }
+                    const dDate = parseAnyDate(u.nextExpirationDate);
                     const pts = Number(u.nextExpirationAmount || 0);
                     if (dDate && pts > 0) expItems.push({ date: dDate, points: pts });
                 }

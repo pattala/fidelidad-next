@@ -1056,14 +1056,36 @@
         }
     }
 
+    let auditTimerInterval = null;
+
     async function streamAuditAction(url, body) {
         const consoleContainer = document.getElementById('consoleContainer');
         const consoleOutput = document.getElementById('consoleOutput');
         const reportBtn = document.getElementById('reportActionContainer');
 
         consoleContainer.style.display = 'block';
-        consoleOutput.textContent = '🚀 Iniciando operación...\n\n';
         if (reportBtn) reportBtn.style.display = 'none';
+
+        if (auditTimerInterval) clearInterval(auditTimerInterval);
+        const startTime = Date.now();
+        const frames = ['-', '\\', '|', '/'];
+
+        const updateTimerHeader = () => {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const spin = frames[elapsed % 4];
+            return `⏳ Ejecutando proceso... ${spin} [${elapsed} seg]\n----------------------------------------------------\n`;
+        };
+
+        consoleOutput.textContent = updateTimerHeader();
+
+        auditTimerInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const spin = frames[elapsed % 4];
+            const lines = consoleOutput.textContent.split('\n');
+            lines[0] = `⏳ Ejecutando proceso... ${spin} [${elapsed} seg]`;
+            consoleOutput.textContent = lines.join('\n');
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }, 500);
 
         try {
             const response = await fetch(url, {
@@ -1083,10 +1105,17 @@
                 consoleOutput.scrollTop = consoleOutput.scrollHeight;
             }
 
+            clearInterval(auditTimerInterval);
+            const totalSec = Math.floor((Date.now() - startTime) / 1000);
+            const lines = consoleOutput.textContent.split('\n');
+            lines[0] = `✅ Proceso completado en ${totalSec} segundos.`;
+            consoleOutput.textContent = lines.join('\n');
+
             if (url === '/api/audit/run' && reportBtn) {
                 reportBtn.style.display = 'block';
             }
         } catch (e) {
+            clearInterval(auditTimerInterval);
             consoleOutput.textContent += `\n❌ Error: ${e.message}`;
         }
     }

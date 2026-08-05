@@ -113,6 +113,8 @@ app.post('/api/git-sync', (req, res) => {
     res.write("🔄 Iniciando flujo de actualización de código...\n");
 
     const commands = [
+        { cmd: 'git', args: ['add', '.'] },
+        { cmd: 'git', args: ['commit', '-m', '"Auto-commit de cambios locales antes de merge"'], allowFail: true },
         { cmd: 'git', args: ['checkout', 'main'] },
         { cmd: 'git', args: ['pull', 'origin', 'main'] },
         { cmd: 'git', args: ['merge', 'desarrollo', '--no-ff', '-m', '"Merge automático desde instalador visual"'] },
@@ -137,7 +139,7 @@ app.post('/api/git-sync', (req, res) => {
         proc.stderr.on('data', (data) => res.write(data.toString()));
 
         proc.on('close', (code) => {
-            if (code !== 0) {
+            if (code !== 0 && !step.allowFail) {
                 res.write(`\n❌ Error ejecutando comando (Código ${code}). Deteniendo flujo.\n`);
                 return res.end();
             }

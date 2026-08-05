@@ -19,6 +19,7 @@ function initFirebaseAdmin() {
             }),
         });
     }
+    try { admin.firestore().settings({ preferRest: true }); } catch (_) {}
     return admin;
 }
 

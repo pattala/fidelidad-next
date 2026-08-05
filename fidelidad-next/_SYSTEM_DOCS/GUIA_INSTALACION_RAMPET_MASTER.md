@@ -121,12 +121,45 @@ Para no cargar estas 30 variables a mano en Vercel:
 
 ---
 
-## 🖥️ Fase Alternativa: Entorno Visual (Recomendado)
-Para una experiencia sin códigos, utilice el **Instalador Visual Rampet**:
+## 🛡️ Fase 4: Centro de Control 360°, Auditoría & Mantenimiento Integral
 
-1. Ejecute el archivo **`INICIAR_INSTALADOR.bat`** (doble clic).
-2. Abra su navegador en **`http://localhost:3005`**.
-3. Utilice la interfaz para configurar variables, generar el archivo de entorno y sincronizar cambios entre ramas (Desarrollo -> Producción) con un solo clic.
+A partir de la versión **V.1.4.90**, el Entorno Visual (`INICIAR_INSTALADOR.bat`) incluye la pestaña **`🛡️ Auditoría & Mantenimiento 360°`**, una suite centralizada para auditar la lógica del negocio, gestionar backups, realizar limpieza de bases de datos y verificar la salud del código en 1 solo clic.
+
+### 📋 Funciones del Centro de Control 360°:
+
+#### 1. 👥 Selector de Cliente / Base de Datos (Marca Blanca Multi-Tenant)
+* **Cómo funciona**: Escanea automáticamente la carpeta `creds/` y la raíz del proyecto.
+* **Uso**: Permite cambiar instantáneamente de cliente (ej. `Desarrollo`, `Producción` o `creds/cliente-veterinaria.json`) para realizar auditorías o mantenimientos sobre su base de datos específica sin tocar código.
+
+#### 2. ⚡ Ejecutar 45 Pruebas de Auditoría (Suite Headless 360°)
+* **Qué hace**: Simula un uso completo del sistema (incluyendo una simulación acelerada de 30 días de operaciones reales).
+* **Parámetros auditados (45 ítems)**:
+  - Permisos FCM y Geolocalización GPS.
+  - Acreditación de puntos, fórmulas de conversión pts/$ y reglas de expiración por rangos.
+  - Canjes de premios válidos y bloqueos por saldo o stock agotado.
+  - Caja Sorpresa (Mystery Box), probabilidades y acreditación.
+  - Campañas (Fijas, Multiplicadores 2x/3x y Campañas Flash con cruce de medianoche).
+  - Avisos de vencimiento (umbral de alertas de expiración) y motor diario.
+  - Referidos, bonos al referente/referido y freno anti-loop de cumpleaños.
+  - Alertas de mascotas (alimento y arenero).
+  - Métrica de Cash Flow 100% (consistencia contable entre saldos circulantes y buckets de vencimiento).
+* **Reporte HTML Interactivo**: Al concluir la auditoría, se activa el botón **`📄 Abrir Reporte HTML Interactivo`**, que despliega los resultados gráficos detallados.
+
+#### 3. 📦 Resguardo / Backup Local a JSON
+* **Qué hace**: Exporta el 100% de la base de datos del cliente seleccionado a un archivo `.json` localizado en la carpeta `backups/` de tu PC (`backups/backup-CLIENTE-FECHA.json`).
+* **Colecciones respaldadas**: `users`, `config`, `prizes`, `campanas`, `branches`, `mystery_box_chances`, `system_notifications`.
+
+#### 4. 📥 Restauración de Resguardo (1-Clic)
+* **Qué hace**: Toma un archivo `.json` de la carpeta `backups/` y restaura todas sus colecciones y documentos de vuelta a la base de datos de Firebase del cliente seleccionado.
+* **Uso**: Útil ante contingencias, migraciones de datos o si necesitas restablecer el estado exacto que tenía un cliente en un momento anterior.
+
+#### 5. 🧹 Limpieza & Optimización de Base de Datos (>60 días)
+* **Qué hace**: Elimina notificaciones leídas antiguas y chances de Mystery Box expiradas de más de 60 días en la base del cliente seleccionado.
+* **Beneficio**: Mantiene la lectura en Firestore ultra rápida y reduce costos de almacenamiento.
+
+#### 6. 🔨 Verificar Compilación Next.js (Build Check)
+* **Qué hace**: Ejecuta `npm run build` directamente en la terminal integrada.
+* **Uso**: Garantiza que el código TypeScript y la estructura del proyecto compilen 100% limpios sin errores antes de hacer un push a Vercel.
 
 ---
 

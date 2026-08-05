@@ -699,6 +699,140 @@ app.get('/api/vercel/env-export', (req, res) => {
     res.send(csv);
 });
 
+// Endpoint: Obtener lista de clientes/tenants disponibles
+app.get('/api/audit/tenants', (req, res) => {
+    const tenants = [];
+    if (fs.existsSync(path.join(__dirname, '.dev_creds.json'))) {
+        tenants.push({ name: 'Desarrollo (.dev_creds.json)', path: '.dev_creds.json', env: 'dev' });
+    }
+    if (fs.existsSync(path.join(__dirname, '.main_creds.json'))) {
+        tenants.push({ name: 'Producción (.main_creds.json)', path: '.main_creds.json', env: 'main' });
+    }
+    const credsDir = path.join(__dirname, 'creds');
+    if (fs.existsSync(credsDir)) {
+        const files = fs.readdirSync(credsDir).filter(f => f.endsWith('.json'));
+        files.forEach(f => {
+            const tag = f.replace('.json', '').toLowerCase();
+            tenants.push({ name: `creds/${f}`, path: `creds/${f}`, env: tag });
+        });
+    }
+    res.json({ tenants });
+});
+
+// Endpoint: Ejecutar Auditoría 360° (Stream Live)
+app.post('/api/audit/run', (req, res) => {
+    const { credsPath, env } = req.body;
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    const args = ['scripts/auditoria-integral-sistema.cjs'];
+    if (credsPath) args.push(`--creds="${credsPath}"`);
+    if (env) args.push(`--env=${env}`);
+
+    const proc = spawn('node', args, { shell: true });
+    proc.stdout.on('data', data => res.write(data.toString()));
+    proc.stderr.on('data', data => res.write(data.toString()));
+    proc.on('close', code => {
+        res.write(`\n--- PROCESO TERMINADO (Código: ${code}) ---\n`);
+        res.end();
+    });
+});
+
+// Endpoint: Ejecutar Backup Local (Stream Live)
+app.post('/api/maintenance/backup', (req, res) => {
+    const { credsPath, env } = req.body;
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    const args = ['scripts/backup-firestore.cjs'];
+    if (credsPath) args.push(`--creds="${credsPath}"`);
+    if (env) args.push(`--env=${env}`);
+
+    const proc = spawn('node', args, { shell: true });
+    proc.stdout.on('data', data => res.write(data.toString()));
+    proc.stderr.on('data', data => res.write(data.toString()));
+    proc.on('close', code => {
+        res.write(`\n--- RESPALDO CONCLUIDO (Código: ${code}) ---\n`);
+        res.end();
+    });
+});
+
+// Endpoint: Obtener lista de backups disponibles en /backups
+app.get('/api/maintenance/backups', (req, res) => {
+    const backupDir = path.join(__dirname, 'backups');
+    const files = [];
+    if (fs.existsSync(backupDir)) {
+        const list = fs.readdirSync(backupDir).filter(f => f.endsWith('.json'));
+        list.forEach(f => {
+            files.push({ name: f, path: `backups/${f}` });
+        });
+    }
+    res.json({ backups: files });
+});
+
+// Endpoint: Ejecutar Restauración (Stream Live)
+app.post('/api/maintenance/restore', (req, res) => {
+    const { credsPath, env, backupFile } = req.body;
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    const args = ['scripts/restore-firestore.cjs', `--file="${backupFile}"`];
+    if (credsPath) args.push(`--creds="${credsPath}"`);
+    if (env) args.push(`--env=${env}`);
+
+    const proc = spawn('node', args, { shell: true });
+    proc.stdout.on('data', data => res.write(data.toString()));
+    proc.stderr.on('data', data => res.write(data.toString()));
+    proc.on('close', code => {
+        res.write(`\n--- RESTAURACIÓN CONCLUIDA (Código: ${code}) ---\n`);
+        res.end();
+    });
+});
+
+// Endpoint: Ejecutar Limpieza (Stream Live)
+app.post('/api/maintenance/cleanup', (req, res) => {
+    const { credsPath, env } = req.body;
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    const args = ['scripts/mantenimiento-limpieza.cjs'];
+    if (credsPath) args.push(`--creds="${credsPath}"`);
+    if (env) args.push(`--env=${env}`);
+
+    const proc = spawn('node', args, { shell: true });
+    proc.stdout.on('data', data => res.write(data.toString()));
+    proc.stderr.on('data', data => res.write(data.toString()));
+    proc.on('close', code => {
+        res.write(`\n--- LIMPIEZA CONCLUIDA (Código: ${code}) ---\n`);
+        res.end();
+    });
+});
+
+// Endpoint: Ejecutar Verificar Compilación Build (Stream Live)
+app.post('/api/software/build', (req, res) => {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    const proc = spawn('npm', ['run', 'build'], { shell: true });
+    proc.stdout.on('data', data => res.write(data.toString()));
+    proc.stderr.on('data', data => res.write(data.toString()));
+    proc.on('close', code => {
+        res.write(`\n--- VERIFICACIÓN DE COMPILACIÓN TERMINADA (Código: ${code}) ---\n`);
+        res.end();
+    });
+});
+
+// Endpoint: Servir Reporte HTML
+app.get('/api/audit/report/:env', (req, res) => {
+    const env = req.params.env || 'dev';
+    const filePath = path.join(__dirname, `audit-report-${env}.html`);
+    if (fs.existsSync(filePath)) {
+        res.sendFile(filePath);
+    } else {
+        res.status(404).send(`<h3>No se encontró el reporte audit-report-${env}.html</h3><p>Ejecuta la auditoría primero.</p>`);
+    }
+});
+
 // Ruta por defecto: Redirigir al frontend
 app.get('/', (req, res) => {
     res.redirect('/installer');

@@ -825,7 +825,7 @@ app.post('/api/software/build', (req, res) => {
 });
 
 // Endpoint: Servir Reporte HTML
-app.get('/api/audit/report/:env?', (req, res) => {
+const handleAuditReport = (req, res) => {
     const env = (req.params.env || 'dev').trim();
     const specificPath = path.resolve(__dirname, `audit-report-${env}.html`);
     const latestPath   = path.resolve(__dirname, `audit-report-latest.html`);
@@ -841,7 +841,10 @@ app.get('/api/audit/report/:env?', (req, res) => {
         return res.sendFile(path.resolve(__dirname, matches[0]));
     }
     res.status(404).send(`<h3>No se encontró ningún reporte HTML de auditoría</h3><p>Ejecuta la auditoría primero.</p>`);
-});
+};
+
+app.get('/api/audit/report', handleAuditReport);
+app.get('/api/audit/report/:env', handleAuditReport);
 
 // Ruta por defecto: Redirigir al frontend
 app.get('/', (req, res) => {

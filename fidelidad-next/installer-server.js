@@ -826,12 +826,17 @@ app.post('/api/software/build', (req, res) => {
 
 // Endpoint: Servir Reporte HTML
 app.get('/api/audit/report/:env', (req, res) => {
-    const env = req.params.env || 'dev';
-    const filePath = path.join(__dirname, `audit-report-${env}.html`);
+    const env = (req.params.env || 'dev').trim();
+    const filePath = path.resolve(__dirname, `audit-report-${env}.html`);
     if (fs.existsSync(filePath)) {
         res.sendFile(filePath);
     } else {
-        res.status(404).send(`<h3>No se encontró el reporte audit-report-${env}.html</h3><p>Ejecuta la auditoría primero.</p>`);
+        const matches = fs.readdirSync(__dirname).filter(f => f.startsWith('audit-report-') && f.endsWith('.html'));
+        if (matches.length > 0) {
+            res.sendFile(path.resolve(__dirname, matches[0]));
+        } else {
+            res.status(404).send(`<h3>No se encontró el reporte audit-report-${env}.html</h3><p>Ejecuta la auditoría primero.</p>`);
+        }
     }
 });
 

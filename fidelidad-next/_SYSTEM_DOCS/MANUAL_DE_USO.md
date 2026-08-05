@@ -287,18 +287,39 @@ El sistema ha sido optimizado con **Carga Inteligente**. Esto significa que el c
 
 ---
 
-## 13. 🚀 Actualizaciones y Mantenimiento Visual (Rampet Installer)
+## 13. 🚀 Actualizaciones y Mantenimiento Visual (INICIAR_INSTALADOR.bat)
 
-Para facilitar el mantenimiento sin necesidad de conocimientos técnicos avanzados en Git, el sistema incluye un **Entorno Visual de Gestión**.
+Para facilitar la administración completa del ecosistema sin conocimientos técnicos de consola, el sistema cuenta con un **Entorno Visual de Gestión 360°** accesible en 1 clic.
 
 ### Cómo iniciar
-1. Localice el archivo **`INICIAR_INSTALADOR.bat`** en la carpeta raíz.
-2. Ejecútelo y navegue a **`http://localhost:3005`**.
+1. Ejecute con doble clic el archivo **`INICIAR_INSTALADOR.bat`** en la carpeta raíz del proyecto.
+2. El sistema abrirá automáticamente el navegador en **`http://localhost:3005`**.
 
-### Funciones Principales
-*   **Sincronizar Código:** Pasa los cambios probados en el Laboratorio (desarrollo) al sitio oficial (main) de forma segura.
-*   **Editor de Variables:** Permite cambiar nombres, claves de API y configuraciones de Firebase desde un formulario visual.
-*   **Despliegue Maestro:** Ejecuta el proceso de instalación completo hacia Vercel y Firebase.
+---
+
+### 📋 Módulos y Solapas del Entorno Visual:
+
+#### 1. 🛠️ Solapa 1: Instalador de Clientes (Despliegue Maestro)
+* **Función**: Permite configurar un nuevo cliente desde un formulario visual con todos sus parámetros (Nombre, Claves API, Firebase, VAPID de notificaciones, SMTP de correo y URL de Vercel).
+* **Resultado**: Genera el archivo de variables y realiza el despliegue inicial hacia Firebase y Vercel sin escribir comandos.
+
+#### 2. 🔄 Solapa 2: Actualizador Git (Super Merge & Firebase)
+* **Tablero de Versiones**: Muestra en tiempo real la versión local en tu PC, la versión en la nube de Desarrollo y la versión en Producción.
+* **Motor A (Código Web)**: Pasa los cambios probados de la rama `desarrollo` a `main` y actualiza automáticamente los sitios de todos tus clientes en Vercel.
+* **Motor B (Firebase)**: Permite capturar reglas/índices desde tu proyecto laboratorio y desplegarlas a múltiples clientes de produción en simultáneo.
+* **Motor C (Limpieza / Wipe)**: Permite reiniciar bases de datos de prueba si necesitas hacer borrados masivos en entornos de test.
+
+#### 3. 🕵️ Solapa 3: Auditoría de Variables Vercel
+* **Función**: Revisa las variables de entorno configuradas en cualquier proyecto de Vercel (Producción, Preview o Local).
+* **Exportación**: Incluye el botón **Descargar Excel (CSV)** para guardar un informe plano de las variables.
+
+#### 4. 🛡️ Solapa 4: Suite de Auditoría 360°, Resguardo & Mantenimiento
+* **Selector Multi-Tenant (Marca Blanca)**: Lista dinámicamente cualquier cliente cargado en la carpeta `creds/` (ej. `Desarrollo`, `Producción` o `creds/cliente-veterinaria.json`).
+* **⚡ Ejecutar 45 Pruebas de Auditoría**: Corre la suite Headless que simula 30 días de operaciones y valida los 45 puntos críticos del sistema. Genera y permite abrir en pantalla el **Reporte HTML Interactivo**.
+* **📦 Backup Local JSON**: Exporta el 100% de la base de datos del cliente (`users`, `config`, `prizes`, `campanas`, etc.) a un archivo JSON en la carpeta `backups/`.
+* **📥 Restaurar Backup a Firebase**: Permite elegir cualquier resguardo `.json` de la carpeta `backups/` y subirlo/restaurarlo de vuelta a la base de datos de Firebase del cliente seleccionado con 1 clic.
+* **🧹 Limpieza (>60 días)**: Purga notificaciones viejas y chances de Mystery Box expiradas de más de 60 días para mantener Firestore rápido y económico.
+* **🔨 Verificar Compilación Next.js**: Revisa la compilación de código (`npm run build`) en la consola en vivo para asegurar que no haya errores de TypeScript antes de publicar.
 
 ---
 

@@ -332,6 +332,7 @@
         <button class="tab-btn active" onclick="switchTab('install-tab')">🛠️ Instalador de Clientes</button>
         <button class="tab-btn" onclick="switchTab('git-tab')">🔄 Actualizador Git (Prod)</button>
         <button class="tab-btn" onclick="switchTab('vercel-tab')">🕵️ Auditoría Vercel</button>
+        <button class="tab-btn" onclick="switchTab('audit-tab')">🛡️ Auditoría & Mantenimiento 360°</button>
     </div>
 
     <!-- TAB 1: INSTALADOR -->
@@ -591,6 +592,65 @@
                 <button class="btn-primary full-width" style="background: #f59e0b; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); margin-top: 0;" onclick="auditVercel()">🔍 Consultar Variables</button>
                 <button id="btnExportEnv" class="btn-primary full-width" style="background: #10b981; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); margin-top: 10px; display: none;" onclick="window.open('/api/vercel/env-export', '_blank')">📊 Descargar Excel (CSV)</button>
             </div>
+        </div>
+    </div>
+
+    <!-- TAB 4: AUDITORÍA & MANTENIMIENTO 360 -->
+    <div id="audit-tab" class="tab-content">
+        <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid var(--primary); border-radius: 16px; padding: 20px; margin-bottom: 25px;">
+            <h3 style="font-size: 16px; margin-bottom: 8px; color: var(--primary);">🛡️ Suite de Auditoría 360°, Resguardo & Salud del Sistema</h3>
+            <p style="color: var(--text-muted); font-size: 13px; line-height: 1.5;">
+                Ejecuta las 45 pruebas de auditoría sobre cualquier cliente, exporta respaldos en JSON, limpia registros antiguos e inspecciona reportes HTML interactivos.
+            </p>
+        </div>
+
+        <!-- SELECCIÓN DE CLIENTE -->
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 25px;">
+            <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--text-main);">
+                1. Seleccionar Cliente / Base de Datos:
+            </label>
+            <select id="auditTenantSelect" style="width: 100%; padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: var(--text-main); font-size: 14px; cursor: pointer;">
+                <option value="">Cargando clientes...</option>
+            </select>
+        </div>
+
+        <!-- ACCIONES RÁPIDAS -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+            <button class="btn-primary" style="background: var(--accent); margin: 0; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);" onclick="runAuditFromUI()">
+                ⚡ Ejecutar 45 Pruebas de Auditoría
+            </button>
+            <button class="btn-primary" style="background: var(--primary); margin: 0; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);" onclick="runBackupFromUI()">
+                📦 Backup Local JSON
+            </button>
+            <button class="btn-primary" style="background: #f59e0b; margin: 0; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);" onclick="runCleanupFromUI()">
+                🧹 Limpieza de Registros (>60 días)
+            </button>
+            <button class="btn-primary" style="background: #8b5cf6; margin: 0; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);" onclick="runBuildFromUI()">
+                🔨 Verificar Compilación Next.js
+            </button>
+        </div>
+
+        <!-- RESTAURAR BACKUP -->
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 25px;">
+            <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--text-main);">
+                2. Restaurar Copia de Resguardo a Firebase:
+            </label>
+            <div style="display: flex; gap: 15px;">
+                <select id="restoreBackupSelect" style="flex: 1; padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: var(--text-main); font-size: 14px; cursor: pointer;">
+                    <option value="">Cargando backups...</option>
+                </select>
+                <button class="btn-primary" style="background: #ef4444; margin: 0; width: auto; padding: 0 24px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" onclick="runRestoreFromUI()">
+                    📥 Restaurar a Firebase
+                </button>
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 8px;">Restaura las colecciones del archivo JSON seleccionado al cliente elegido arriba.</span>
+        </div>
+
+        <!-- REPORTE HTML BOTÓN -->
+        <div id="reportActionContainer" style="display: none; margin-bottom: 20px;">
+            <button class="btn-primary" style="background: #10b981; width: 100%; font-size: 15px; padding: 14px; box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);" onclick="openAuditReportModal()">
+                📄 Abrir Reporte HTML Interactivo del Cliente
+            </button>
         </div>
     </div>
 
@@ -970,11 +1030,139 @@
         }
     }
 
-    // Cargar versiones al inicio
+    // --- AUDITORÍA & MANTENIMIENTO 360° JS ---
+    let currentAuditEnv = 'dev';
+
+    async function loadAuditTenants() {
+        const sel = document.getElementById('auditTenantSelect');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Cargando clientes...</option>';
+        try {
+            const res = await fetch('/api/audit/tenants');
+            const data = await res.json();
+            if (Array.isArray(data.tenants) && data.tenants.length > 0) {
+                sel.innerHTML = '';
+                data.tenants.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = JSON.stringify({ path: t.path, env: t.env });
+                    opt.textContent = t.name;
+                    sel.appendChild(opt);
+                });
+            } else {
+                sel.innerHTML = '<option value="">No hay credenciales cargadas</option>';
+            }
+        } catch (e) {
+            sel.innerHTML = '<option value="">Error al cargar clientes</option>';
+        }
+    }
+
+    async function streamAuditAction(url, body) {
+        const consoleContainer = document.getElementById('consoleContainer');
+        const consoleOutput = document.getElementById('consoleOutput');
+        const reportBtn = document.getElementById('reportActionContainer');
+
+        consoleContainer.style.display = 'block';
+        consoleOutput.textContent = '🚀 Iniciando operación...\n\n';
+        if (reportBtn) reportBtn.style.display = 'none';
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value, { stream: true });
+                consoleOutput.textContent += chunk;
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+
+            if (url === '/api/audit/run' && reportBtn) {
+                reportBtn.style.display = 'block';
+            }
+        } catch (e) {
+            consoleOutput.textContent += `\n❌ Error: ${e.message}`;
+        }
+    }
+
+    function runAuditFromUI() {
+        const sel = document.getElementById('auditTenantSelect').value;
+        if (!sel) return alert('Por favor, selecciona un cliente.');
+        const tenant = JSON.parse(sel);
+        currentAuditEnv = tenant.env;
+        streamAuditAction('/api/audit/run', { credsPath: tenant.path, env: tenant.env });
+    }
+
+    function runBackupFromUI() {
+        const sel = document.getElementById('auditTenantSelect').value;
+        if (!sel) return alert('Por favor, selecciona un cliente.');
+        const tenant = JSON.parse(sel);
+        streamAuditAction('/api/maintenance/backup', { credsPath: tenant.path, env: tenant.env });
+    }
+
+    function runCleanupFromUI() {
+        const sel = document.getElementById('auditTenantSelect').value;
+        if (!sel) return alert('Por favor, selecciona un cliente.');
+        const tenant = JSON.parse(sel);
+        streamAuditAction('/api/maintenance/cleanup', { credsPath: tenant.path, env: tenant.env });
+    }
+
+    function runBuildFromUI() {
+        streamAuditAction('/api/software/build', {});
+    }
+
+    function openAuditReportModal() {
+        window.open(`/api/audit/report/${currentAuditEnv}`, '_blank');
+    }
+
+    async function loadAuditBackups() {
+        const sel = document.getElementById('restoreBackupSelect');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Cargando backups...</option>';
+        try {
+            const res = await fetch('/api/maintenance/backups');
+            const data = await res.json();
+            if (Array.isArray(data.backups) && data.backups.length > 0) {
+                sel.innerHTML = '';
+                data.backups.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b.path;
+                    opt.textContent = b.name;
+                    sel.appendChild(opt);
+                });
+            } else {
+                sel.innerHTML = '<option value="">No hay archivos de backup en /backups</option>';
+            }
+        } catch(e) {
+            sel.innerHTML = '<option value="">Error cargando backups</option>';
+        }
+    }
+
+    function runRestoreFromUI() {
+        const tenantSel = document.getElementById('auditTenantSelect').value;
+        const backupFile = document.getElementById('restoreBackupSelect').value;
+        if (!tenantSel) return alert('Por favor, selecciona un cliente destino.');
+        if (!backupFile) return alert('Por favor, selecciona un archivo de backup JSON.');
+        
+        const tenant = JSON.parse(tenantSel);
+        if (confirm(`¿Estás seguro de restaurar el backup ${backupFile} en la base de datos de ${tenant.name}?`)) {
+            streamAuditAction('/api/maintenance/restore', { credsPath: tenant.path, env: tenant.env, backupFile });
+        }
+    }
+
+    // Cargar versiones y tenants al inicio
     window.addEventListener('load', () => {
         refreshVersions();
         loadDevCreds();
         loadVercelProjects();
+        loadAuditTenants();
+        loadAuditBackups();
     });
 </script>
 

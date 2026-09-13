@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.01 - SHADOW DOM & FOCUS LOCK)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.02 - SHADOW DOM & FOCUS RECOVERY)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V2.01: Iniciando extensión con aislamiento Shadow DOM y protección de foco.");
+    console.log("🚀 [Club Fidelidad] V2.02: Iniciando extensión con aislamiento Shadow DOM y recuperación de foco.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -1103,13 +1103,18 @@ function showFidelidadPanel() {
     // --- AISLAMIENTO SHADOW DOM (V1.99) ---
     shadowRoot.appendChild(panel);
 
-    // --- PREVENIR ROBO DE FOCO POR LA PÁGINA HOSPEDADORA (POS/FACTURADOR) ---
-    const preventFocusSteal = ['mousedown', 'mouseup', 'click', 'pointerdown', 'pointerup', 'touchstart', 'touchend', 'focusin', 'focusout'];
-    preventFocusSteal.forEach(evtName => {
-        panel.addEventListener(evtName, (e) => {
-            e.stopPropagation();
-        }, true);
-    });
+    // --- V2.02: PREVENIR ROBO DE FOCO - enfoque correcto ---
+    // preventDefault en mousedown evita que el browser transfiera el foco a la página
+    // NO usamos stopPropagation porque eso rompería el drag del header y del flotante
+    panel.addEventListener('mousedown', (e) => {
+        // Solo prevenimos el default si el click NO es en un input/textarea/button/select
+        // (esos elementos necesitan recibir el foco normalmente)
+        const tag = e.target.tagName ? e.target.tagName.toUpperCase() : '';
+        const isInteractive = ['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT', 'A'].includes(tag) || e.target.isContentEditable;
+        if (!isInteractive) {
+            e.preventDefault(); // Evita que el foco se vaya a la página, sin romper drag
+        }
+    }, false);
 
 
     // --- DRAGGABLE LOGIC ---
@@ -1348,6 +1353,28 @@ function showFidelidadPanel() {
 
     // FOCO PERSISTENTE SOLO EN EL SEARCH INICIAL
     setTimeout(() => searchInput.focus(), 300);
+
+    // --- V2.02: RECUPERACIÓN DE FOCO ANTI-POS ---
+    // Cuando el POS roba el foco del searchInput, tomamos el foco de vuelta
+    // siempre que el usuario no haya movido el foco a otro elemento de nuestra extensión
+    let _focusRecoveryEnabled = true;
+    searchInput.addEventListener('blur', () => {
+        if (!_focusRecoveryEnabled) return;
+        // Esperamos un tick para ver si el foco se movió a OTRO elemento de nuestra extensión
+        setTimeout(() => {
+            const host = document.getElementById('cf-shadow-host');
+            if (!host || !host.shadowRoot) return;
+            const shadowActive = host.shadowRoot.activeElement;
+            // shadowActive es null cuando el POS robó el foco (nada en nuestro shadow tiene foco)
+            // Si otro input/button de la extensión tiene el foco, no tocamos nada
+            if (!shadowActive) {
+                const currentPanel = host.shadowRoot.getElementById('fidelidad-panel');
+                if (currentPanel) { // Solo si el panel sigue visible
+                    searchInput.focus();
+                }
+            }
+        }, 80);
+    });
 
     let searchTimeout;
     searchInput.oninput = (e) => {

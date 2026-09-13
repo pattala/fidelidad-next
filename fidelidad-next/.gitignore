@@ -48,6 +48,7 @@ dist-ssr
 service-account.json
 backups/
 *.zip
+!public/download/*.zip
 .vercel
 .env*.local
 # Temporary Scratch & Audit Files

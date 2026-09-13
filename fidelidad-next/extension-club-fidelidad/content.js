@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V1.99 - SHADOW DOM ISOLATED)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.00 - SHADOW DOM & KEYBOARD PROTECTED)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V1.99: Iniciando extensión con aislamiento Shadow DOM.");
+    console.log("🚀 [Club Fidelidad] V2.00: Iniciando extensión con aislamiento Shadow DOM y protección de teclado.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -18,6 +18,28 @@ let globalMysteryBoxConfig = null;
 const getIdentifier = (item) => item?.socioNumber || item?.phone || item?.telefono || item?.dni || item?.userId || 'unknown';
 
 // SHADOW DOM HELPER
+
+// SHADOW DOM KEYBOARD PROTECTION
+function isExtensionInputFocused() {
+    const host = document.getElementById('cf-shadow-host');
+    if (!host || !host.shadowRoot) return false;
+    const shadowActive = host.shadowRoot.activeElement;
+    if (!shadowActive) return false;
+    const tag = shadowActive.tagName ? shadowActive.tagName.toUpperCase() : '';
+    return tag === 'INPUT' || tag === 'TEXTAREA' || shadowActive.isContentEditable === true;
+}
+
+function handleExtensionKeyProtection(e) {
+    if (isExtensionInputFocused()) {
+        // Bloquear que los atajos de teclado de la página hospedadora roben las pulsaciones
+        e.stopPropagation();
+    }
+}
+
+window.addEventListener('keydown', handleExtensionKeyProtection, true);
+window.addEventListener('keyup', handleExtensionKeyProtection, true);
+window.addEventListener('keypress', handleExtensionKeyProtection, true);
+
 function getOrCreateShadowRoot() {
     let host = document.getElementById('cf-shadow-host');
     if (!host) {
@@ -1303,14 +1325,7 @@ function showFidelidadPanel() {
         };
     });
 
-    function stopInputPropagation(inputEl) {
-        if (!inputEl) return;
-        ['keydown', 'keyup', 'keypress'].forEach(evt => {
-            inputEl.addEventListener(evt, (e) => { e.stopPropagation(); });
-        });
-    }
-    stopInputPropagation(searchInput);
-    stopInputPropagation(inputMonto);
+    // Keyboard events are handled via global capture protector handleExtensionKeyProtection
 
     // FOCO PERSISTENTE SOLO EN EL SEARCH INICIAL
     setTimeout(() => searchInput.focus(), 300);

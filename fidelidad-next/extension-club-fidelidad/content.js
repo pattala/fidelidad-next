@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.00 - SHADOW DOM & KEYBOARD PROTECTED)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.01 - SHADOW DOM & FOCUS LOCK)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V2.00: Iniciando extensión con aislamiento Shadow DOM y protección de teclado.");
+    console.log("🚀 [Club Fidelidad] V2.01: Iniciando extensión con aislamiento Shadow DOM y protección de foco.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -59,7 +59,7 @@ function getOrCreateShadowRoot() {
                 position: fixed; bottom: 20px; right: 20px; width: 330px;
                 background: white; border-radius: 20px;
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); z-index: 2147483647 !important;
-                pointer-events: all !important; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                pointer-events: auto !important; user-select: text !important; -webkit-user-select: text !important; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column;
                 animation: fidelidad-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             }
@@ -75,7 +75,7 @@ function getOrCreateShadowRoot() {
             .cf-tab.active { background: white; color: #16a34a; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
             .cf-label { display: block; font-size: 11px; font-weight: 700; color: #374151; margin-bottom: 4px; }
             .cf-field { margin-bottom: 12px; }
-            .fidelidad-input { width: 100%; padding: 10px; border: 1.5px solid #e5e7eb; border-radius: 10px; box-sizing: border-box; font-size: 13px; outline: none; transition: border-color 0.2s; }
+            .fidelidad-input { width: 100%; padding: 10px; border: 1.5px solid #e5e7eb; border-radius: 10px; box-sizing: border-box; font-size: 13px; outline: none; transition: border-color 0.2s; pointer-events: auto !important; user-select: text !important; -webkit-user-select: text !important; }
             .fidelidad-input:focus { border-color: #16a34a; background: #f0fdf4; }
             .cf-input-big { font-size: 20px; font-weight: 900; padding: 10px 14px; }
             .cf-input-group { position: relative; display: flex; align-items: center; }
@@ -1103,6 +1103,15 @@ function showFidelidadPanel() {
     // --- AISLAMIENTO SHADOW DOM (V1.99) ---
     shadowRoot.appendChild(panel);
 
+    // --- PREVENIR ROBO DE FOCO POR LA PÁGINA HOSPEDADORA (POS/FACTURADOR) ---
+    const preventFocusSteal = ['mousedown', 'mouseup', 'click', 'pointerdown', 'pointerup', 'touchstart', 'touchend', 'focusin', 'focusout'];
+    preventFocusSteal.forEach(evtName => {
+        panel.addEventListener(evtName, (e) => {
+            e.stopPropagation();
+        }, true);
+    });
+
+
     // --- DRAGGABLE LOGIC ---
     let isDragging = false;
     let offset = { x: 0, y: 0 };
@@ -1159,6 +1168,16 @@ function showFidelidadPanel() {
     };
 
     // ELEMENTOS
+    
+    // Auto foco y selección en el buscador de socios
+    setTimeout(() => {
+        const sInput = shadowRoot.getElementById('fidelidad-search');
+        if (sInput) {
+            sInput.focus();
+            sInput.select();
+        }
+    }, 250);
+
     const searchInput = shadowRoot.getElementById('fidelidad-search');
     const resultsDiv = shadowRoot.getElementById('fidelidad-results');
     const pointsForm = shadowRoot.getElementById('cf-points-form');

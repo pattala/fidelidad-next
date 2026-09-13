@@ -830,15 +830,16 @@ const handleAuditReport = (req, res) => {
     const specificPath = path.resolve(__dirname, `audit-report-${env}.html`);
     const latestPath   = path.resolve(__dirname, `audit-report-latest.html`);
     
-    if (fs.existsSync(specificPath)) {
-        return res.sendFile(specificPath);
+    let targetPath = null;
+    if (fs.existsSync(specificPath)) targetPath = specificPath;
+    else if (fs.existsSync(latestPath)) targetPath = latestPath;
+    else {
+        const matches = fs.readdirSync(__dirname).filter(f => f.startsWith('audit-report-') && f.endsWith('.html'));
+        if (matches.length > 0) targetPath = path.resolve(__dirname, matches[0]);
     }
-    if (fs.existsSync(latestPath)) {
-        return res.sendFile(latestPath);
-    }
-    const matches = fs.readdirSync(__dirname).filter(f => f.startsWith('audit-report-') && f.endsWith('.html'));
-    if (matches.length > 0) {
-        return res.sendFile(path.resolve(__dirname, matches[0]));
+
+    if (targetPath && fs.existsSync(targetPath)) {
+        return res.sendFile(path.basename(targetPath), { root: path.dirname(targetPath) });
     }
     res.status(404).send(`<h3>No se encontró ningún reporte HTML de auditoría</h3><p>Ejecuta la auditoría primero.</p>`);
 };

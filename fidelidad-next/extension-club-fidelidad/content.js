@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.00 - SHADOW DOM & KEYBOARD PROTECTED)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.02 - SHADOW DOM & FOCUS RECOVERY)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V2.00: Iniciando extensión con aislamiento Shadow DOM y protección de teclado.");
+    console.log("🚀 [Club Fidelidad] V2.02: Iniciando extensión con aislamiento Shadow DOM y recuperación de foco.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -59,7 +59,7 @@ function getOrCreateShadowRoot() {
                 position: fixed; bottom: 20px; right: 20px; width: 330px;
                 background: white; border-radius: 20px;
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); z-index: 2147483647 !important;
-                pointer-events: all !important; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                pointer-events: auto !important; user-select: text !important; -webkit-user-select: text !important; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column;
                 animation: fidelidad-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             }
@@ -75,7 +75,7 @@ function getOrCreateShadowRoot() {
             .cf-tab.active { background: white; color: #16a34a; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
             .cf-label { display: block; font-size: 11px; font-weight: 700; color: #374151; margin-bottom: 4px; }
             .cf-field { margin-bottom: 12px; }
-            .fidelidad-input { width: 100%; padding: 10px; border: 1.5px solid #e5e7eb; border-radius: 10px; box-sizing: border-box; font-size: 13px; outline: none; transition: border-color 0.2s; }
+            .fidelidad-input { width: 100%; padding: 10px; border: 1.5px solid #e5e7eb; border-radius: 10px; box-sizing: border-box; font-size: 13px; outline: none; transition: border-color 0.2s; pointer-events: auto !important; user-select: text !important; -webkit-user-select: text !important; }
             .fidelidad-input:focus { border-color: #16a34a; background: #f0fdf4; }
             .cf-input-big { font-size: 20px; font-weight: 900; padding: 10px 14px; }
             .cf-input-group { position: relative; display: flex; align-items: center; }
@@ -1103,6 +1103,20 @@ function showFidelidadPanel() {
     // --- AISLAMIENTO SHADOW DOM (V1.99) ---
     shadowRoot.appendChild(panel);
 
+    // --- V2.02: PREVENIR ROBO DE FOCO - enfoque correcto ---
+    // preventDefault en mousedown evita que el browser transfiera el foco a la página
+    // NO usamos stopPropagation porque eso rompería el drag del header y del flotante
+    panel.addEventListener('mousedown', (e) => {
+        // Solo prevenimos el default si el click NO es en un input/textarea/button/select
+        // (esos elementos necesitan recibir el foco normalmente)
+        const tag = e.target.tagName ? e.target.tagName.toUpperCase() : '';
+        const isInteractive = ['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT', 'A'].includes(tag) || e.target.isContentEditable;
+        if (!isInteractive) {
+            e.preventDefault(); // Evita que el foco se vaya a la página, sin romper drag
+        }
+    }, false);
+
+
     // --- DRAGGABLE LOGIC ---
     let isDragging = false;
     let offset = { x: 0, y: 0 };
@@ -1159,6 +1173,16 @@ function showFidelidadPanel() {
     };
 
     // ELEMENTOS
+    
+    // Auto foco y selección en el buscador de socios
+    setTimeout(() => {
+        const sInput = shadowRoot.getElementById('fidelidad-search');
+        if (sInput) {
+            sInput.focus();
+            sInput.select();
+        }
+    }, 250);
+
     const searchInput = shadowRoot.getElementById('fidelidad-search');
     const resultsDiv = shadowRoot.getElementById('fidelidad-results');
     const pointsForm = shadowRoot.getElementById('cf-points-form');
@@ -1329,6 +1353,28 @@ function showFidelidadPanel() {
 
     // FOCO PERSISTENTE SOLO EN EL SEARCH INICIAL
     setTimeout(() => searchInput.focus(), 300);
+
+    // --- V2.02: RECUPERACIÓN DE FOCO ANTI-POS ---
+    // Cuando el POS roba el foco del searchInput, tomamos el foco de vuelta
+    // siempre que el usuario no haya movido el foco a otro elemento de nuestra extensión
+    let _focusRecoveryEnabled = true;
+    searchInput.addEventListener('blur', () => {
+        if (!_focusRecoveryEnabled) return;
+        // Esperamos un tick para ver si el foco se movió a OTRO elemento de nuestra extensión
+        setTimeout(() => {
+            const host = document.getElementById('cf-shadow-host');
+            if (!host || !host.shadowRoot) return;
+            const shadowActive = host.shadowRoot.activeElement;
+            // shadowActive es null cuando el POS robó el foco (nada en nuestro shadow tiene foco)
+            // Si otro input/button de la extensión tiene el foco, no tocamos nada
+            if (!shadowActive) {
+                const currentPanel = host.shadowRoot.getElementById('fidelidad-panel');
+                if (currentPanel) { // Solo si el panel sigue visible
+                    searchInput.focus();
+                }
+            }
+        }, 80);
+    });
 
     let searchTimeout;
     searchInput.oninput = (e) => {

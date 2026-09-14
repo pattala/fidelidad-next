@@ -1,23 +1,46 @@
-// Protector de teclado avanzado (Carga en document_start)
+// Protector V2.11
 
-window.addEventListener('keydown', handleKey, true);
-window.addEventListener('keyup', handleKey, true);
-window.addEventListener('keypress', handleKey, true);
-
-function handleKey(e) {
+function protectEvent(e) {
     if (e.composedPath().some(el => el.id === 'cf-shadow-host')) {
-        e.stopPropagation(); // stopPropagation como en V1.89
+        e.preventDefault = function() {};
+        e.stopPropagation();
     }
 }
 
-window.addEventListener('blur', handleFocus, true);
-window.addEventListener('focusout', handleFocus, true);
+// Proteger eventos de teclado
+window.addEventListener('keydown', protectEvent, true);
+window.addEventListener('keyup', protectEvent, true);
+window.addEventListener('keypress', protectEvent, true);
+window.addEventListener('input', protectEvent, true);
 
+// Proteger eventos de mouse para evitar que el POS robe el foco al hacer click
+window.addEventListener('mousedown', protectEvent, true);
+window.addEventListener('mouseup', protectEvent, true);
+window.addEventListener('click', protectEvent, true);
+window.addEventListener('pointerdown', protectEvent, true);
+window.addEventListener('pointerup', protectEvent, true);
+
+// Prevenir robo de foco
 function handleFocus(e) {
     if (e.relatedTarget && e.relatedTarget.id === 'cf-shadow-host') {
         e.stopPropagation();
     }
 }
+window.addEventListener('blur', handleFocus, true);
+window.addEventListener('focusout', handleFocus, true);
+
+try {
+    const originalTarget = Object.getOwnPropertyDescriptor(Event.prototype, 'target');
+    Object.defineProperty(Event.prototype, 'target', {
+        get: function() {
+            const t = originalTarget.get.call(this);
+            if (t && t.id === 'cf-shadow-host' && t.shadowRoot) {
+                return t.shadowRoot.activeElement || t;
+            }
+            return t;
+        }
+    });
+} catch(e) {}
 
 try {
     const originalActiveElement = Object.getOwnPropertyDescriptor(Document.prototype, 'activeElement');

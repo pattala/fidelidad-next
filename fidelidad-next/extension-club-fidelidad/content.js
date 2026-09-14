@@ -1,4 +1,4 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.10 - Fix avanzado de Shadow DOM + POS ActiveElement Proxy)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.11 - Fix bloqueo total de mousedown para evitar robo de foco del POS)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {

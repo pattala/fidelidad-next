@@ -1,4 +1,4 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.13 - Fix UTF-8 encoding en protector)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.14 - Simplificación extrema: aislamiento en fase de burbuja sin protector)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
@@ -1327,9 +1327,19 @@ function showFidelidadPanel() {
         };
     });
 
-
-
-
+    // --- AISLAMIENTO DEL PANEL ---
+    // Frenamos la propagación (en fase de burbuja) de todos los eventos del panel.
+    // Así, los elementos internos de la extensión funcionan perfecto, pero los eventos
+    // mueren en el panel y nunca llegan a la página principal del POS, evitando que
+    // el POS intercepte teclas o robe el foco al hacer click.
+    const panel = shadowRoot.getElementById('fidelidad-panel');
+    if (panel) {
+        ['keydown', 'keyup', 'keypress', 'input', 'mousedown', 'mouseup', 'click'].forEach(evt => {
+            panel.addEventListener(evt, (e) => {
+                e.stopPropagation();
+            });
+        });
+    }
     // Foco inicial en el campo de búsqueda
     setTimeout(() => searchInput.focus(), 300);
 

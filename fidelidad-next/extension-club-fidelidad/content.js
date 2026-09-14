@@ -1,4 +1,4 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.06 - document_start con DOM-ready guard)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.07 - Fix eventos panel y observer basado en V1.88)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
@@ -18,27 +18,6 @@ let globalMysteryBoxConfig = null;
 const getIdentifier = (item) => item?.socioNumber || item?.phone || item?.telefono || item?.dni || item?.userId || 'unknown';
 
 // SHADOW DOM HELPER
-
-// SHADOW DOM KEYBOARD PROTECTION
-function isExtensionInputFocused() {
-    const host = document.getElementById('cf-shadow-host');
-    if (!host || !host.shadowRoot) return false;
-    const shadowActive = host.shadowRoot.activeElement;
-    if (!shadowActive) return false;
-    const tag = shadowActive.tagName ? shadowActive.tagName.toUpperCase() : '';
-    return tag === 'INPUT' || tag === 'TEXTAREA' || shadowActive.isContentEditable === true;
-}
-
-function handleExtensionKeyProtection(e) {
-    if (isExtensionInputFocused()) {
-        // Bloquear TODOS los listeners del POS en esta misma fase (capture)
-        e.stopImmediatePropagation();
-    }
-}
-
-window.addEventListener('keydown', handleExtensionKeyProtection, true);
-window.addEventListener('keyup', handleExtensionKeyProtection, true);
-window.addEventListener('keypress', handleExtensionKeyProtection, true);
 
 function getOrCreateShadowRoot() {
     let host = document.getElementById('cf-shadow-host');
@@ -946,18 +925,12 @@ const observer = new MutationObserver((mutations) => {
         }
     }, 150);
 });
-function startObserver() {
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
-    detectAmount();
-    setTimeout(detectAmount, 1000);
-    setTimeout(detectAmount, 2500);
-}
+observer.observe(document.body, { childList: true, subtree: true });
 
-if (document.body) {
-    startObserver();
-} else {
-    document.addEventListener('DOMContentLoaded', startObserver);
-}
+// Initial detection sequence
+detectAmount();
+setTimeout(detectAmount, 1000);
+setTimeout(detectAmount, 2500);
 
 function showFidelidadPanel() {
     const shadowRoot = getOrCreateShadowRoot();
@@ -1155,10 +1128,11 @@ function showFidelidadPanel() {
         e.stopPropagation();
         const panel = document.getElementById('fidelidad-panel');
         if (panel) panel.remove();
-        // Keyboard protection scoped to panel inputs
-        // Reiniciar todo
+        window.removeEventListener('keydown', killEvent, true);
+        window.removeEventListener('keyup', killEvent, true);
+        window.removeEventListener('keypress', killEvent, true);
         selectedClient = null;
-        processedAmount = detectedAmount; // Evitar que el observer lo reviva al instante
+        processedAmount = detectedAmount;
         if (shadowRoot.getElementById('cf-v35-bubble')) shadowRoot.getElementById('cf-v35-bubble').style.display = 'flex';
     };
 
@@ -1355,7 +1329,20 @@ function showFidelidadPanel() {
         };
     });
 
-    // Keyboard events are handled via global capture protector handleExtensionKeyProtection
+
+    // Protección de teclado: activa solo mientras el panel está abierto
+    // Usa shadowRoot.activeElement para detectar foco dentro del Shadow DOM
+    function killEvent(e) {
+        const host = document.getElementById('cf-shadow-host');
+        if (!host || !host.shadowRoot) return;
+        const shadowActive = host.shadowRoot.activeElement;
+        if (shadowActive && (shadowActive.tagName === 'INPUT' || shadowActive.tagName === 'TEXTAREA')) {
+            e.stopPropagation();
+        }
+    }
+    window.addEventListener('keydown', killEvent, true);
+    window.addEventListener('keyup', killEvent, true);
+    window.addEventListener('keypress', killEvent, true);
 
     // Foco inicial en el campo de búsqueda
     setTimeout(() => searchInput.focus(), 300);
@@ -1780,9 +1767,9 @@ function showFidelidadPanel() {
             }, 400);
         }
         shadowRoot.getElementById('cf-final-close').onclick = () => {
-            // Keyboard protection scoped to panel inputs
-            
-            
+            window.removeEventListener('keydown', killEvent, true);
+            window.removeEventListener('keyup', killEvent, true);
+            window.removeEventListener('keypress', killEvent, true);
             processedAmount = detectedAmount; // Prevenir que reabra solo
             panel.remove();
         };
@@ -1943,9 +1930,9 @@ function showFidelidadPanel() {
             </div>
         `;
         shadowRoot.getElementById('cf-final-close').onclick = () => {
-            // Keyboard protection scoped to panel inputs
-            
-            
+            window.removeEventListener('keydown', killEvent, true);
+            window.removeEventListener('keyup', killEvent, true);
+            window.removeEventListener('keypress', killEvent, true);
             processedAmount = detectedAmount; // Prevenir que reabra solo
             panel.remove();
         };

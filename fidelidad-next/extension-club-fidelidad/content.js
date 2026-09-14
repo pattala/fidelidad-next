@@ -1,4 +1,4 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.03 - FIX TECLADO SHADOW DOM)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.04 - FIX TECLADO stopImmediatePropagation)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
@@ -31,8 +31,8 @@ function isExtensionInputFocused() {
 
 function handleExtensionKeyProtection(e) {
     if (isExtensionInputFocused()) {
-        // Bloquear que los atajos de teclado de la página hospedadora roben las pulsaciones
-        e.stopPropagation();
+        // Bloquear TODOS los listeners del POS en esta misma fase (capture)
+        e.stopImmediatePropagation();
     }
 }
 
@@ -1378,18 +1378,6 @@ function showFidelidadPanel() {
             }
         }, 80);
     });
-
-    // Pass-through de teclado: si el shadow host tiene foco activo, redirigir teclas al elemento activo
-    // Esto resuelve el caso donde el POS intercepta keydown antes que el shadow DOM
-    window.addEventListener('keydown', (e) => {
-        const host = document.getElementById('cf-shadow-host');
-        if (!host || !host.shadowRoot) return;
-        const shadowActive = host.shadowRoot.activeElement;
-        if (shadowActive && shadowActive.tagName === 'INPUT' && shadowActive !== document.activeElement) {
-            // El shadow input tiene foco pero la página está interceptando: redirigir
-            shadowActive.focus();
-        }
-    }, true);
 
     let searchTimeout;
     searchInput.oninput = (e) => {

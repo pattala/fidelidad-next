@@ -1,47 +1,23 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.07 - Fix eventos panel y observer basado en V1.88)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.09 - Separacion de protector en document_start y content en document_idle)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V2.08: Iniciando extensión (document_start con early-protect)");
+    console.log("🚀 [Club Fidelidad] V2.02: Iniciando extensión con aislamiento Shadow DOM y recuperación de foco.");
 
-    // --- 1. EARLY KEYBOARD PROTECTION (Se registra inmediatamente en document_start) ---
-    function isExtensionInputFocused() {
-        const host = document.getElementById('cf-shadow-host');
-        if (!host || !host.shadowRoot) return false;
-        const shadowActive = host.shadowRoot.activeElement;
-        if (!shadowActive) return false;
-        const tag = shadowActive.tagName ? shadowActive.tagName.toUpperCase() : '';
-        return tag === 'INPUT' || tag === 'TEXTAREA' || shadowActive.isContentEditable === true;
-    }
+let config = { apiUrl: '', apiKey: '' };
+let detectedAmount = 0;
+let detectedDiscounts = 0;
+let processedAmount = null;
+let apiRatios = { base: 100, perPeso: 1, discountK: 0 };
+let currentPromos = [];
+let enablePetModule = false;
+let globalAllowEmployeeOverride = false;
+let globalStrictMinimumPurchaseBlock = false;
+let globalMysteryBoxConfig = null;
 
-    function handleExtensionKeyProtection(e) {
-        if (isExtensionInputFocused()) {
-            e.stopImmediatePropagation();
-        }
-    }
-    
-    // Registramos en fase de captura (true) lo antes posible para ganarle al POS
-    window.addEventListener('keydown', handleExtensionKeyProtection, true);
-    window.addEventListener('keyup', handleExtensionKeyProtection, true);
-    window.addEventListener('keypress', handleExtensionKeyProtection, true);
+const getIdentifier = (item) => item?.socioNumber || item?.phone || item?.telefono || item?.dni || item?.userId || 'unknown';
 
-
-    // --- 2. EXTENSION LOGIC (Espera al DOM para no crashear) ---
-    function initFidelidadExtension() {
-        let config = { apiUrl: '', apiKey: '' };
-        let detectedAmount = 0;
-        let detectedDiscounts = 0;
-        let processedAmount = null;
-        let apiRatios = { base: 100, perPeso: 1, discountK: 0 };
-        let currentPromos = [];
-        let enablePetModule = false;
-        let globalAllowEmployeeOverride = false;
-        let globalStrictMinimumPurchaseBlock = false;
-        let globalMysteryBoxConfig = null;
-
-        const getIdentifier = (item) => item?.socioNumber || item?.phone || item?.telefono || item?.dni || item?.userId || 'unknown';
-
-        // SHADOW DOM HELPER
+// SHADOW DOM HELPER
 
 function getOrCreateShadowRoot() {
     let host = document.getElementById('cf-shadow-host');
@@ -1943,13 +1919,6 @@ function showFidelidadPanel() {
             panel.remove();
         };
     }
-    } // <-- End of initFidelidadExtension
-
-    // Wait for DOM to be ready before running the main extension logic
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initFidelidadExtension);
-    } else {
-        initFidelidadExtension();
-    }
 }
 
+}

@@ -1,4 +1,4 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.02 - SHADOW DOM & FOCUS RECOVERY)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.03 - FIX TECLADO SHADOW DOM)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
@@ -1351,30 +1351,45 @@ function showFidelidadPanel() {
 
     // Keyboard events are handled via global capture protector handleExtensionKeyProtection
 
-    // FOCO PERSISTENTE SOLO EN EL SEARCH INICIAL
+    // FOCO INICIAL EN EL SEARCH
     setTimeout(() => searchInput.focus(), 300);
 
-    // --- V2.02: RECUPERACIÓN DE FOCO ANTI-POS ---
-    // Cuando el POS roba el foco del searchInput, tomamos el foco de vuelta
-    // siempre que el usuario no haya movido el foco a otro elemento de nuestra extensión
+    // --- V2.03: RECUPERACIÓN DE FOCO ANTI-POS (mejorada) ---
+    // Solo recupera el foco si: el panel sigue visible, no hay cliente seleccionado,
+    // y el usuario no hizo click dentro del panel (evita loop de foco)
     let _focusRecoveryEnabled = true;
+    let _userClickedInsidePanel = false;
+
+    // Detectar clicks dentro del panel para no robar el foco
+    shadowRoot.addEventListener('mousedown', () => {
+        _userClickedInsidePanel = true;
+        setTimeout(() => { _userClickedInsidePanel = false; }, 300);
+    });
+
     searchInput.addEventListener('blur', () => {
-        if (!_focusRecoveryEnabled) return;
-        // Esperamos un tick para ver si el foco se movió a OTRO elemento de nuestra extensión
+        if (!_focusRecoveryEnabled || _userClickedInsidePanel || selectedClient) return;
         setTimeout(() => {
             const host = document.getElementById('cf-shadow-host');
             if (!host || !host.shadowRoot) return;
             const shadowActive = host.shadowRoot.activeElement;
-            // shadowActive es null cuando el POS robó el foco (nada en nuestro shadow tiene foco)
-            // Si otro input/button de la extensión tiene el foco, no tocamos nada
             if (!shadowActive) {
                 const currentPanel = host.shadowRoot.getElementById('fidelidad-panel');
-                if (currentPanel) { // Solo si el panel sigue visible
-                    searchInput.focus();
-                }
+                if (currentPanel) searchInput.focus();
             }
         }, 80);
     });
+
+    // Pass-through de teclado: si el shadow host tiene foco activo, redirigir teclas al elemento activo
+    // Esto resuelve el caso donde el POS intercepta keydown antes que el shadow DOM
+    window.addEventListener('keydown', (e) => {
+        const host = document.getElementById('cf-shadow-host');
+        if (!host || !host.shadowRoot) return;
+        const shadowActive = host.shadowRoot.activeElement;
+        if (shadowActive && shadowActive.tagName === 'INPUT' && shadowActive !== document.activeElement) {
+            // El shadow input tiene foco pero la página está interceptando: redirigir
+            shadowActive.focus();
+        }
+    }, true);
 
     let searchTimeout;
     searchInput.oninput = (e) => {

@@ -15,7 +15,7 @@ window.addEventListener('keyup', protectKey, true);
 window.addEventListener('keypress', protectKey, true);
 window.addEventListener('input', protectKey, true);
 
-// Proxy de Event.target para engañar al POS (cuando el click sale del Shadow DOM, el POS lee el target)
+// Proxy de Event.target para engaÃ±ar al POS (cuando el click sale del Shadow DOM, el POS lee el target)
 try {
     const originalTarget = Object.getOwnPropertyDescriptor(Event.prototype, 'target');
     Object.defineProperty(Event.prototype, 'target', {

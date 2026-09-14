@@ -1,4 +1,4 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.12 - Quitar bloqueo de mouse que congelaba la UI, depender de los proxies)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.13 - Fix UTF-8 encoding en protector)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {

@@ -1,39 +1,27 @@
-// Protector V2.11
+// Protector V2.12
 
-function protectEvent(e) {
+function protectKey(e) {
     if (e.composedPath().some(el => el.id === 'cf-shadow-host')) {
+        // Neutralizar preventDefault para que el POS no pueda bloquear el tipeo nativo
         e.preventDefault = function() {};
+        // Frenar la propagacion para que el POS no ejecute sus listeners de atajos de teclado
         e.stopPropagation();
     }
 }
 
-// Proteger eventos de teclado
-window.addEventListener('keydown', protectEvent, true);
-window.addEventListener('keyup', protectEvent, true);
-window.addEventListener('keypress', protectEvent, true);
-window.addEventListener('input', protectEvent, true);
+// Proteger SOLO eventos de teclado. (Si bloqueamos el mouse, rompemos la UI de la extension)
+window.addEventListener('keydown', protectKey, true);
+window.addEventListener('keyup', protectKey, true);
+window.addEventListener('keypress', protectKey, true);
+window.addEventListener('input', protectKey, true);
 
-// Proteger eventos de mouse para evitar que el POS robe el foco al hacer click
-window.addEventListener('mousedown', protectEvent, true);
-window.addEventListener('mouseup', protectEvent, true);
-window.addEventListener('click', protectEvent, true);
-window.addEventListener('pointerdown', protectEvent, true);
-window.addEventListener('pointerup', protectEvent, true);
-
-// Prevenir robo de foco
-function handleFocus(e) {
-    if (e.relatedTarget && e.relatedTarget.id === 'cf-shadow-host') {
-        e.stopPropagation();
-    }
-}
-window.addEventListener('blur', handleFocus, true);
-window.addEventListener('focusout', handleFocus, true);
-
+// Proxy de Event.target para engañar al POS (cuando el click sale del Shadow DOM, el POS lee el target)
 try {
     const originalTarget = Object.getOwnPropertyDescriptor(Event.prototype, 'target');
     Object.defineProperty(Event.prototype, 'target', {
         get: function() {
             const t = originalTarget.get.call(this);
+            // Si el POS cree que hicimos click en el contenedor vacio (DIV), le decimos que en realidad estamos en un INPUT
             if (t && t.id === 'cf-shadow-host' && t.shadowRoot) {
                 return t.shadowRoot.activeElement || t;
             }
@@ -42,6 +30,7 @@ try {
     });
 } catch(e) {}
 
+// Proxy de document.activeElement para que el POS crea que estamos enfocados en un input normal
 try {
     const originalActiveElement = Object.getOwnPropertyDescriptor(Document.prototype, 'activeElement');
     Object.defineProperty(document, 'activeElement', {

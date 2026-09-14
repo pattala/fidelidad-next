@@ -1,4 +1,4 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.09 - Separacion de protector en document_start y content en document_idle)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.10 - Fix avanzado de Shadow DOM + POS ActiveElement Proxy)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {

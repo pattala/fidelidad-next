@@ -2,22 +2,46 @@
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V2.02: Iniciando extensión con aislamiento Shadow DOM y recuperación de foco.");
+    console.log("🚀 [Club Fidelidad] V2.08: Iniciando extensión (document_start con early-protect)");
 
-let config = { apiUrl: '', apiKey: '' };
-let detectedAmount = 0;
-let detectedDiscounts = 0;
-let processedAmount = null;
-let apiRatios = { base: 100, perPeso: 1, discountK: 0 };
-let currentPromos = [];
-let enablePetModule = false;
-let globalAllowEmployeeOverride = false;
-let globalStrictMinimumPurchaseBlock = false;
-let globalMysteryBoxConfig = null;
+    // --- 1. EARLY KEYBOARD PROTECTION (Se registra inmediatamente en document_start) ---
+    function isExtensionInputFocused() {
+        const host = document.getElementById('cf-shadow-host');
+        if (!host || !host.shadowRoot) return false;
+        const shadowActive = host.shadowRoot.activeElement;
+        if (!shadowActive) return false;
+        const tag = shadowActive.tagName ? shadowActive.tagName.toUpperCase() : '';
+        return tag === 'INPUT' || tag === 'TEXTAREA' || shadowActive.isContentEditable === true;
+    }
 
-const getIdentifier = (item) => item?.socioNumber || item?.phone || item?.telefono || item?.dni || item?.userId || 'unknown';
+    function handleExtensionKeyProtection(e) {
+        if (isExtensionInputFocused()) {
+            e.stopImmediatePropagation();
+        }
+    }
+    
+    // Registramos en fase de captura (true) lo antes posible para ganarle al POS
+    window.addEventListener('keydown', handleExtensionKeyProtection, true);
+    window.addEventListener('keyup', handleExtensionKeyProtection, true);
+    window.addEventListener('keypress', handleExtensionKeyProtection, true);
 
-// SHADOW DOM HELPER
+
+    // --- 2. EXTENSION LOGIC (Espera al DOM para no crashear) ---
+    function initFidelidadExtension() {
+        let config = { apiUrl: '', apiKey: '' };
+        let detectedAmount = 0;
+        let detectedDiscounts = 0;
+        let processedAmount = null;
+        let apiRatios = { base: 100, perPeso: 1, discountK: 0 };
+        let currentPromos = [];
+        let enablePetModule = false;
+        let globalAllowEmployeeOverride = false;
+        let globalStrictMinimumPurchaseBlock = false;
+        let globalMysteryBoxConfig = null;
+
+        const getIdentifier = (item) => item?.socioNumber || item?.phone || item?.telefono || item?.dni || item?.userId || 'unknown';
+
+        // SHADOW DOM HELPER
 
 function getOrCreateShadowRoot() {
     let host = document.getElementById('cf-shadow-host');
@@ -1128,9 +1152,7 @@ function showFidelidadPanel() {
         e.stopPropagation();
         const panel = document.getElementById('fidelidad-panel');
         if (panel) panel.remove();
-        window.removeEventListener('keydown', killEvent, true);
-        window.removeEventListener('keyup', killEvent, true);
-        window.removeEventListener('keypress', killEvent, true);
+
         selectedClient = null;
         processedAmount = detectedAmount;
         if (shadowRoot.getElementById('cf-v35-bubble')) shadowRoot.getElementById('cf-v35-bubble').style.display = 'flex';
@@ -1330,19 +1352,7 @@ function showFidelidadPanel() {
     });
 
 
-    // Protección de teclado: activa solo mientras el panel está abierto
-    // Usa shadowRoot.activeElement para detectar foco dentro del Shadow DOM
-    function killEvent(e) {
-        const host = document.getElementById('cf-shadow-host');
-        if (!host || !host.shadowRoot) return;
-        const shadowActive = host.shadowRoot.activeElement;
-        if (shadowActive && (shadowActive.tagName === 'INPUT' || shadowActive.tagName === 'TEXTAREA')) {
-            e.stopPropagation();
-        }
-    }
-    window.addEventListener('keydown', killEvent, true);
-    window.addEventListener('keyup', killEvent, true);
-    window.addEventListener('keypress', killEvent, true);
+
 
     // Foco inicial en el campo de búsqueda
     setTimeout(() => searchInput.focus(), 300);
@@ -1767,9 +1777,7 @@ function showFidelidadPanel() {
             }, 400);
         }
         shadowRoot.getElementById('cf-final-close').onclick = () => {
-            window.removeEventListener('keydown', killEvent, true);
-            window.removeEventListener('keyup', killEvent, true);
-            window.removeEventListener('keypress', killEvent, true);
+
             processedAmount = detectedAmount; // Prevenir que reabra solo
             panel.remove();
         };
@@ -1930,13 +1938,18 @@ function showFidelidadPanel() {
             </div>
         `;
         shadowRoot.getElementById('cf-final-close').onclick = () => {
-            window.removeEventListener('keydown', killEvent, true);
-            window.removeEventListener('keyup', killEvent, true);
-            window.removeEventListener('keypress', killEvent, true);
+
             processedAmount = detectedAmount; // Prevenir que reabra solo
             panel.remove();
         };
     }
+    } // <-- End of initFidelidadExtension
+
+    // Wait for DOM to be ready before running the main extension logic
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initFidelidadExtension);
+    } else {
+        initFidelidadExtension();
+    }
 }
 
-}

@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Integrador de Beneficios",
-    "version": "2.07",
+    "version": "2.08",
     "description": "Integra tu facturador con el club de fidelidad",
     "permissions": [
         "storage"
@@ -30,6 +30,7 @@
             "css": [
                 "content.css"
             ],
+            "run_at": "document_start",
             "all_frames": false
         }
     ]

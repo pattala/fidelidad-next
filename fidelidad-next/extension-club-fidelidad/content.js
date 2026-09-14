@@ -1,4 +1,4 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.05 - document_start + sin blur recovery)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.06 - document_start con DOM-ready guard)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
@@ -946,12 +946,18 @@ const observer = new MutationObserver((mutations) => {
         }
     }, 150);
 });
-observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
+function startObserver() {
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
+    detectAmount();
+    setTimeout(detectAmount, 1000);
+    setTimeout(detectAmount, 2500);
+}
 
-// Initial detection sequence
-detectAmount();
-setTimeout(detectAmount, 1000);
-setTimeout(detectAmount, 2500);
+if (document.body) {
+    startObserver();
+} else {
+    document.addEventListener('DOMContentLoaded', startObserver);
+}
 
 function showFidelidadPanel() {
     const shadowRoot = getOrCreateShadowRoot();

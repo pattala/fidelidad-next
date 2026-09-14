@@ -1,4 +1,4 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.04 - FIX TECLADO stopImmediatePropagation)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V2.05 - document_start + sin blur recovery)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
@@ -1351,33 +1351,8 @@ function showFidelidadPanel() {
 
     // Keyboard events are handled via global capture protector handleExtensionKeyProtection
 
-    // FOCO INICIAL EN EL SEARCH
+    // Foco inicial en el campo de búsqueda
     setTimeout(() => searchInput.focus(), 300);
-
-    // --- V2.03: RECUPERACIÓN DE FOCO ANTI-POS (mejorada) ---
-    // Solo recupera el foco si: el panel sigue visible, no hay cliente seleccionado,
-    // y el usuario no hizo click dentro del panel (evita loop de foco)
-    let _focusRecoveryEnabled = true;
-    let _userClickedInsidePanel = false;
-
-    // Detectar clicks dentro del panel para no robar el foco
-    shadowRoot.addEventListener('mousedown', () => {
-        _userClickedInsidePanel = true;
-        setTimeout(() => { _userClickedInsidePanel = false; }, 300);
-    });
-
-    searchInput.addEventListener('blur', () => {
-        if (!_focusRecoveryEnabled || _userClickedInsidePanel || selectedClient) return;
-        setTimeout(() => {
-            const host = document.getElementById('cf-shadow-host');
-            if (!host || !host.shadowRoot) return;
-            const shadowActive = host.shadowRoot.activeElement;
-            if (!shadowActive) {
-                const currentPanel = host.shadowRoot.getElementById('fidelidad-panel');
-                if (currentPanel) searchInput.focus();
-            }
-        }, 80);
-    });
 
     let searchTimeout;
     searchInput.oninput = (e) => {

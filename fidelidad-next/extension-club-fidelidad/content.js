@@ -4,6 +4,15 @@ if (window.location.href.includes('fidelidad-next.vercel.app') || window.locatio
 } else {
     console.log("🚀 [Club Fidelidad] V2.02: Iniciando extensión con aislamiento Shadow DOM y recuperación de foco.");
 
+// Prevenir que el POS robe el foco cuando el usuario está en la extensión (Shadow DOM)
+const originalFocus = HTMLElement.prototype.focus;
+HTMLElement.prototype.focus = function() {
+    if (document.activeElement && document.activeElement.id === 'cf-shadow-host') {
+        return; // Ignorar peticiones de foco del POS si la extensión está activa
+    }
+    return originalFocus.apply(this, arguments);
+};
+
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
 let detectedDiscounts = 0;
@@ -1082,10 +1091,7 @@ function showFidelidadPanel() {
     // --- AISLAMIENTO SHADOW DOM (V1.99) ---
     shadowRoot.appendChild(panel);
 
-    // Evitar que el sitio principal intercepte las teclas (ej. buscador)
-    ['keydown', 'keyup', 'keypress'].forEach(evt => {
-        panel.addEventListener(evt, (e) => e.stopPropagation(), true);
-    });
+
 
     // --- V2.02: PREVENIR ROBO DE FOCO - enfoque correcto ---
     // preventDefault en mousedown evita que el browser transfiera el foco a la página

@@ -1082,6 +1082,11 @@ function showFidelidadPanel() {
     // --- AISLAMIENTO SHADOW DOM (V1.99) ---
     shadowRoot.appendChild(panel);
 
+    // Evitar que el sitio principal intercepte las teclas (ej. buscador)
+    ['keydown', 'keyup', 'keypress'].forEach(evt => {
+        panel.addEventListener(evt, (e) => e.stopPropagation(), true);
+    });
+
     // --- V2.02: PREVENIR ROBO DE FOCO - enfoque correcto ---
     // preventDefault en mousedown evita que el browser transfiera el foco a la página
     // NO usamos stopPropagation porque eso rompería el drag del header y del flotante
@@ -1101,16 +1106,17 @@ function showFidelidadPanel() {
     let offset = { x: 0, y: 0 };
     const header = panel.querySelector('.fidelidad-header');
 
-    header.onmousedown = (e) => {
+    header.addEventListener('pointerdown', (e) => {
         if (e.target.id === 'fidelidad-close' || e.target.id === 'fidelidad-minimize') return;
         isDragging = true;
         offset.x = e.clientX - panel.offsetLeft;
         offset.y = e.clientY - panel.offsetTop;
         panel.style.transition = 'none';
         header.style.cursor = 'grabbing';
-    };
+        header.setPointerCapture(e.pointerId);
+    });
 
-    document.addEventListener('mousemove', (e) => {
+    header.addEventListener('pointermove', (e) => {
         if (!isDragging) return;
         panel.style.left = (e.clientX - offset.x) + 'px';
         panel.style.top = (e.clientY - offset.y) + 'px';
@@ -1118,9 +1124,10 @@ function showFidelidadPanel() {
         panel.style.right = 'auto';
     });
 
-    document.addEventListener('mouseup', () => {
+    header.addEventListener('pointerup', (e) => {
         isDragging = false;
         header.style.cursor = 'move';
+        try { header.releasePointerCapture(e.pointerId); } catch(err) {}
     });
 
     // Eventos UI del Panel

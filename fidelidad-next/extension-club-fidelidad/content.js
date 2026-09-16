@@ -4,27 +4,27 @@ if (window.location.href.includes('fidelidad-next.vercel.app') || window.locatio
 } else {
     console.log("🚀 [Club Fidelidad] V2.02: Iniciando extensión con aislamiento Shadow DOM y recuperación de foco.");
 
-// --- V2.18: AISLAMIENTO TOTAL de teclado y foco para Shadow DOM ---
+// --- V2.19: AISLAMIENTO TOTAL de teclado y foco para Shadow DOM (con delegatesFocus) ---
+// Helper: detecta si un input de la extensión está enfocado
+function _cfInputFocused() {
+    const host = document.getElementById('cf-shadow-host');
+    if (!host || !host.shadowRoot) return false;
+    // Con delegatesFocus, document.activeElement === host cuando un input interno tiene foco
+    if (document.activeElement !== host) return false;
+    const active = host.shadowRoot.activeElement;
+    return active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName);
+}
 // 1) Interceptar teclas en FASE DE CAPTURA a nivel document (el POS no las ve)
-['keydown', 'keyup', 'keypress'].forEach(evt => {
+['keydown', 'keyup', 'keypress', 'input'].forEach(evt => {
     document.addEventListener(evt, (e) => {
-        const host = document.getElementById('cf-shadow-host');
-        if (host && host.shadowRoot) {
-            const active = host.shadowRoot.activeElement;
-            if (active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName)) {
-                e.stopImmediatePropagation();
-            }
-        }
+        if (_cfInputFocused()) e.stopImmediatePropagation();
     }, true); // TRUE = fase de captura
 });
 // 2) Bloquear robo de foco por el POS
 const originalFocus = HTMLElement.prototype.focus;
 HTMLElement.prototype.focus = function() {
-    const host = document.getElementById('cf-shadow-host');
-    if (host && host.shadowRoot && host.shadowRoot.activeElement &&
-        ['INPUT', 'TEXTAREA', 'SELECT'].includes(host.shadowRoot.activeElement.tagName)) {
-        return;
-    }
+    // Si la extensión tiene un input enfocado, bloquear cualquier intento externo de robar foco
+    if (_cfInputFocused() && !this.closest?.('#cf-shadow-host')) return;
     return originalFocus.apply(this, arguments);
 };
 
@@ -52,7 +52,7 @@ function getOrCreateShadowRoot() {
         host.style.cssText = 'position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647; pointer-events: none;';
         (document.body || document.documentElement).appendChild(host);
 
-        const shadow = host.attachShadow({ mode: 'open' });
+        const shadow = host.attachShadow({ mode: 'open', delegatesFocus: true });
 
         const style = document.createElement('style');
         style.id = 'cf-all-styles';

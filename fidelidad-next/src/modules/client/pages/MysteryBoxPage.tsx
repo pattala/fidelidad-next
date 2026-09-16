@@ -160,7 +160,7 @@ export const MysteryBoxPage = () => {
 
     if (status === 'loading') {
         return (
-            <div className="min-h-[calc(100vh-120px)] py-10 overflow-x-hidden bg-gray-900 flex flex-col items-center justify-center p-4">
+            <div className="fixed inset-0 z-[35] pt-[80px] pb-[80px] bg-gray-900 flex flex-col items-center justify-center p-4">
                 <div className="text-center">
                     <Loader2 className="w-12 h-12 text-white animate-spin mx-auto mb-4" />
                     <p className="text-white font-bold animate-pulse">Preparando tu sorpresa...</p>
@@ -171,7 +171,7 @@ export const MysteryBoxPage = () => {
 
     if (status === 'invalid') {
         return (
-            <div className="min-h-[calc(100vh-120px)] py-10 overflow-x-hidden bg-gray-900 flex flex-col items-center justify-center p-4">
+            <div className="fixed inset-0 z-[35] pt-[80px] pb-[80px] bg-gray-900 flex flex-col items-center justify-center p-4">
                 <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[30px] border border-white/10 text-center max-w-sm w-full">
                     <div className="bg-red-500/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <XCircle className="w-10 h-10 text-red-500" />
@@ -190,7 +190,7 @@ export const MysteryBoxPage = () => {
 
     if (status === 'rejected') {
         return (
-            <div className="min-h-[calc(100vh-120px)] py-10 overflow-x-hidden bg-gray-900 flex flex-col items-center justify-center p-4">
+            <div className="fixed inset-0 z-[35] pt-[80px] pb-[80px] bg-gray-900 flex flex-col items-center justify-center p-4">
                 <div className="text-center">
                     <p className="text-white/60 mb-6">Has rechazado la Caja Sorpresa.</p>
                     <button onClick={() => navigate('/')} className="px-8 py-3 bg-white/10 rounded-xl text-white font-bold">
@@ -203,7 +203,7 @@ export const MysteryBoxPage = () => {
 
     if (status === 'won') {
         return (
-            <div className="min-h-[calc(100vh-120px)] py-10 overflow-x-hidden bg-gradient-to-br from-green-900 via-emerald-900 to-black flex flex-col items-center justify-center p-4">
+            <div className="fixed inset-0 z-[35] pt-[80px] pb-[80px] bg-gradient-to-br from-green-900 via-emerald-900 to-black flex flex-col items-center justify-center p-4">
                 <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[30px] border border-white/20 text-center max-w-sm w-full animate-in zoom-in duration-500">
                     <div className="relative w-28 h-28 mx-auto mb-6">
                         <div className="absolute inset-0 bg-yellow-400/20 rounded-full blur-2xl animate-pulse"></div>
@@ -235,13 +235,13 @@ export const MysteryBoxPage = () => {
 
     // status === 'ready' || 'playing'
     return (
-        <div className="min-h-[calc(100vh-120px)] py-10 overflow-x-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-black flex flex-col items-center justify-center p-4 relative">
+        <div className="fixed inset-0 z-[35] pt-[80px] pb-[80px] bg-gradient-to-br from-indigo-900 via-purple-900 to-black flex flex-col items-center justify-center p-4 relative">
             {/* Background elements */}
             <div className="absolute top-20 left-10 w-64 h-64 bg-pink-500/20 rounded-full blur-3xl"></div>
             <div className="absolute bottom-20 right-10 w-80 h-80 bg-orange-500/20 rounded-full blur-3xl"></div>
 
             <div className="relative z-10 w-full max-w-sm">
-                <div className="text-center mb-8 md:mb-12">
+                <div className="text-center mb-4 md:mb-10">
                     <h1 className="text-3xl md:text-4xl font-black text-white mb-2 md:mb-3 drop-shadow-lg">Caja Sorpresa</h1>
                     <p className="text-white/80 font-medium text-sm md:text-base">Tocá la caja para descubrir cuántos puntos extra te llevás hoy.</p>
                 </div>
@@ -249,7 +249,7 @@ export const MysteryBoxPage = () => {
                 <div 
                     ref={boxRef}
                     onClick={status === 'ready' ? handlePlay : undefined}
-                    className={`relative w-48 h-48 md:w-56 md:h-56 mx-auto mb-8 md:mb-12 cursor-pointer transition-transform duration-300 hover:scale-105 ${status === 'playing' ? 'pointer-events-none' : ''}`}
+                    className={`relative w-36 h-36 md:w-56 md:h-56 mx-auto mb-6 md:mb-10 cursor-pointer transition-transform duration-300 hover:scale-105 ${status === 'playing' ? 'pointer-events-none' : ''}`}
                 >
                     <style>{`
                         @keyframes shake {
@@ -264,7 +264,7 @@ export const MysteryBoxPage = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-orange-400 to-pink-600 rounded-[2.5rem] md:rounded-[3rem] rotate-6 opacity-50 blur-xl animate-pulse"></div>
                     <div className="absolute inset-0 bg-gradient-to-tr from-orange-500 to-pink-500 rounded-[2.5rem] md:rounded-[3rem] border-4 border-white/20 shadow-2xl flex items-center justify-center overflow-hidden">
                         <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/10 rounded-b-full"></div>
-                        <Gift className={`w-24 h-24 md:w-28 md:h-28 text-white drop-shadow-lg ${status === 'playing' ? 'animate-bounce' : ''}`} />
+                        <Gift className={`w-16 h-16 md:w-28 md:h-28 text-white drop-shadow-lg ${status === 'playing' ? 'animate-bounce' : ''}`} />
                     </div>
                 </div>
 

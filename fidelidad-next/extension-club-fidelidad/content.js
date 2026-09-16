@@ -957,10 +957,10 @@ setTimeout(detectAmount, 1000);
 setTimeout(detectAmount, 2500);
 
 function showFidelidadPanel() {
-    const shadowRoot = getOrCreateShadowRoot();
-    if (shadowRoot.getElementById('fidelidad-panel')) {
-        const amountEl = shadowRoot.getElementById('cf-display-amount');
-        const inputMonto = shadowRoot.getElementById('cf-input-amount');
+    getOrCreateShadowRoot(); // Mantener shadow root para el panel azul de alertas
+    if (document.getElementById('fidelidad-panel')) {
+        const amountEl = document.getElementById('cf-display-amount');
+        const inputMonto = document.getElementById('cf-input-amount');
         const baseActual = detectedAmount;
 
         if (amountEl) {
@@ -974,10 +974,10 @@ function showFidelidadPanel() {
         }
         
         // Si el panel estaba minimizado y el monto cambió, lo restauramos
-        const body = shadowRoot.querySelector('.fidelidad-body');
+        const body = document.querySelector('.fidelidad-body');
         if (body && body.style.display === 'none') {
             body.style.display = 'block';
-            shadowRoot.getElementById('fidelidad-close').innerText = '×';
+            document.getElementById('fidelidad-close').innerText = '×';
         }
 
         // --- FIX: Si el panel quedó atrapado en un modal oculto, lo movemos al body o al modal activo ---
@@ -1103,8 +1103,14 @@ function showFidelidadPanel() {
         </div>
     `;
 
-    // --- AISLAMIENTO SHADOW DOM (V1.99) ---
-    shadowRoot.appendChild(panel);
+    // --- V2.20: Inyectar panel en DOM directo (como v1.98) para compatibilidad con inputs ---
+    const modalSelectors = ['.modal-content', '.modal-body', '.bootbox', '.ui-dialog-content', '.sky-modal', '[role="dialog"]'];
+    let injector = document.body;
+    for (let sel of modalSelectors) {
+        const found = document.querySelector(sel);
+        if (found) { injector = found; break; }
+    }
+    injector.appendChild(panel);
 
 
 
@@ -1152,29 +1158,29 @@ function showFidelidadPanel() {
     });
 
     // Eventos UI del Panel
-    shadowRoot.getElementById('fidelidad-close').onclick = (e) => {
+    document.getElementById('fidelidad-close').onclick = (e) => {
         e.stopPropagation();
         const panel = document.getElementById('fidelidad-panel');
         if (panel) panel.remove();
 
         selectedClient = null;
         processedAmount = detectedAmount;
-        if (shadowRoot.getElementById('cf-v35-bubble')) shadowRoot.getElementById('cf-v35-bubble').style.display = 'flex';
+        if (document.getElementById('cf-v35-bubble')) document.getElementById('cf-v35-bubble').style.display = 'flex';
     };
 
     let isMinimized = false;
-    shadowRoot.getElementById('fidelidad-minimize').onclick = (e) => {
+    document.getElementById('fidelidad-minimize').onclick = (e) => {
         e.stopPropagation();
         isMinimized = !isMinimized;
-        const body = shadowRoot.querySelector('.fidelidad-body');
+        const body = document.querySelector('.fidelidad-body');
         if (isMinimized) {
             body.style.display = 'none';
-            shadowRoot.getElementById('fidelidad-minimize').innerText = '□';
-            shadowRoot.getElementById('fidelidad-minimize').title = 'Maximizar';
+            document.getElementById('fidelidad-minimize').innerText = '□';
+            document.getElementById('fidelidad-minimize').title = 'Maximizar';
         } else {
             body.style.display = 'block';
-            shadowRoot.getElementById('fidelidad-minimize').innerText = '_';
-            shadowRoot.getElementById('fidelidad-minimize').title = 'Minimizar';
+            document.getElementById('fidelidad-minimize').innerText = '_';
+            document.getElementById('fidelidad-minimize').title = 'Minimizar';
         }
     };
 
@@ -1182,27 +1188,27 @@ function showFidelidadPanel() {
     
     // Auto foco y selección en el buscador de socios
     setTimeout(() => {
-        const sInput = shadowRoot.getElementById('fidelidad-search');
+        const sInput = document.getElementById('fidelidad-search');
         if (sInput) {
             sInput.focus();
             sInput.select();
         }
     }, 250);
 
-    const searchInput = shadowRoot.getElementById('fidelidad-search');
-    const resultsDiv = shadowRoot.getElementById('fidelidad-results');
-    const pointsForm = shadowRoot.getElementById('cf-points-form');
-    const submitBtn = shadowRoot.getElementById('fidelidad-submit');
-    const statusDiv = shadowRoot.getElementById('fidelidad-status');
-    const clientHeader = shadowRoot.getElementById('cf-client-name-header');
-    const promosList = shadowRoot.getElementById('cf-promos-list');
-    const inputMonto = shadowRoot.getElementById('cf-input-amount');
-    const promosContainer = shadowRoot.getElementById('cf-promos-container');
-    const tabsContainer = shadowRoot.getElementById('cf-tabs-container');
-    const tabSumar = shadowRoot.getElementById('cf-tab-content-sumar');
-    const tabCanjes = shadowRoot.getElementById('cf-tab-content-canjes');
-    const prizesList = shadowRoot.getElementById('cf-prizes-list');
-    const mainTitle = shadowRoot.getElementById('cf-main-title');
+    const searchInput = document.getElementById('fidelidad-search');
+    const resultsDiv = document.getElementById('fidelidad-results');
+    const pointsForm = document.getElementById('cf-points-form');
+    const submitBtn = document.getElementById('fidelidad-submit');
+    const statusDiv = document.getElementById('fidelidad-status');
+    const clientHeader = document.getElementById('cf-client-name-header');
+    const promosList = document.getElementById('cf-promos-list');
+    const inputMonto = document.getElementById('cf-input-amount');
+    const promosContainer = document.getElementById('cf-promos-container');
+    const tabsContainer = document.getElementById('cf-tabs-container');
+    const tabSumar = document.getElementById('cf-tab-content-sumar');
+    const tabCanjes = document.getElementById('cf-tab-content-canjes');
+    const prizesList = document.getElementById('cf-prizes-list');
+    const mainTitle = document.getElementById('cf-main-title');
     // MANTENER SIEMPRE EN PESOS EN LA EXTENSIÓN
     let isPesos = true;
 
@@ -1215,12 +1221,12 @@ function showFidelidadPanel() {
 
     function updatePointsPreview() {
         const val = parseFloat(inputMonto.value);
-        const previewContainer = shadowRoot.getElementById('cf-preview-container');
+        const previewContainer = document.getElementById('cf-preview-container');
         if (!previewContainer) return;
 
         // Auto-show mystery box si esta encendido y val >= minAmount
-        const mbxContainer = shadowRoot.getElementById('cf-mystery-box-container');
-        const mbCheckbox = shadowRoot.getElementById('cf-generate-mystery-box');
+        const mbxContainer = document.getElementById('cf-mystery-box-container');
+        const mbCheckbox = document.getElementById('cf-generate-mystery-box');
         const mbConfig = globalMysteryBoxConfig || window._cfFullData?.config?.mysteryBox;
         const isSkipped = window._cfFullData?.skipped;
         
@@ -1286,7 +1292,7 @@ function showFidelidadPanel() {
         const ptsAfterPromo = ptsBase;
 
         let bonus = 0;
-        const applyPromos = shadowRoot.getElementById('cf-apply-promos').checked;
+        const applyPromos = document.getElementById('cf-apply-promos').checked;
         if (applyPromos) {
             const selectedIds = Array.from(document.querySelectorAll('.cf-promo-check:checked')).map(el => el.value);
             currentPromos.filter(p => selectedIds.includes(p.id)).forEach(b => {
@@ -1323,7 +1329,7 @@ function showFidelidadPanel() {
     }
 
     // MASTER TOGGLE PROMOS
-    const masterApply = shadowRoot.getElementById('cf-apply-promos');
+    const masterApply = document.getElementById('cf-apply-promos');
     masterApply.onchange = (e) => {
         const active = e.target.checked;
         promosList.style.opacity = active ? '1' : '0.4';
@@ -1448,7 +1454,7 @@ function showFidelidadPanel() {
                 clientHeader.innerHTML = `<div style="font-size: 14px; margin-bottom: 3px;">Socio: <strong>${selectedClient.name}</strong> <span style="margin-left: 8px; font-size: 11px; background: #d1fae5; color: #059669; padding: 2px 6px; border-radius: 12px; font-weight: bold; border: 1px solid #34d399;">⭐ ${ptsBalance} pts</span></div>${extraInfo ? `<div style="font-size: 12px; color: #a7f3d0; font-weight: normal;">${extraInfo}</div>` : ''}`;
                 
                 // Hide search container to save space
-                const searchContainer = shadowRoot.querySelector('.fidelidad-search-container');
+                const searchContainer = document.querySelector('.fidelidad-search-container');
                 if (searchContainer) searchContainer.style.display = 'none';
                 
                 searchInput.value = selectedClient.name;
@@ -1460,12 +1466,12 @@ function showFidelidadPanel() {
                 statusDiv.innerText = '';
 
                 // Actualizar balance en pestaña canjes
-                const balanceEl = shadowRoot.getElementById('cf-client-points-balance');
+                const balanceEl = document.getElementById('cf-client-points-balance');
                 if (balanceEl) balanceEl.innerText = c.accumulated_points ?? (c.points ?? (c.puntos ?? 0));
 
                 // --- SECCIÓN PET FOOD: Mostrar solo si el módulo está activo y el cliente tiene mascotas ---
-                const petFoodSection = shadowRoot.getElementById('cf-pet-food-section');
-                const petListDiv = shadowRoot.getElementById('cf-pet-list');
+                const petFoodSection = document.getElementById('cf-pet-food-section');
+                const petListDiv = document.getElementById('cf-pet-list');
                 const clientPets = selectedClient.pets || [];
 
                 if (petFoodSection) {
@@ -1671,7 +1677,7 @@ function showFidelidadPanel() {
 
                 // Focus amount input
                 setTimeout(() => {
-                    const amountInput = shadowRoot.getElementById('cf-input-amount');
+                    const amountInput = document.getElementById('cf-input-amount');
                     if (amountInput) amountInput.focus();
                 }, 100);
             };
@@ -1683,20 +1689,20 @@ function showFidelidadPanel() {
     submitBtn.onclick = async () => {
         if (!selectedClient) return;
 
-        const amount = parseFloat(shadowRoot.getElementById('cf-input-amount').value);
+        const amount = parseFloat(document.getElementById('cf-input-amount').value);
         if (isNaN(amount) || amount <= 0) {
             statusDiv.innerText = '\u274C Ingrese un monto válido';
             return;
         }
 
         const bonusIds = Array.from(document.querySelectorAll('.cf-promo-check:checked')).map(el => el.value);
-        const concept = shadowRoot.getElementById('cf-concept').value;
-        const date = shadowRoot.getElementById('cf-date').value;
-        const applyWhatsApp = shadowRoot.getElementById('cf-notify-wa').checked;
-        const applyPromos = shadowRoot.getElementById('cf-apply-promos').checked;
+        const concept = document.getElementById('cf-concept').value;
+        const date = document.getElementById('cf-date').value;
+        const applyWhatsApp = document.getElementById('cf-notify-wa').checked;
+        const applyPromos = document.getElementById('cf-apply-promos').checked;
 
         // Pet Food Data (solo si el módulo esta activo en esta instancia)
-        const petFoodCheck = shadowRoot.getElementById('cf-pet-food-check');
+        const petFoodCheck = document.getElementById('cf-pet-food-check');
         const isPetFood = petFoodCheck ? petFoodCheck.checked : false;
         const petIds = isPetFood
             ? Array.from(document.querySelectorAll('.cf-pet-check:checked')).map(el => el.value)
@@ -1731,7 +1737,7 @@ function showFidelidadPanel() {
                     petIds: finalPetIds,
                     isPetLitter: isPetLitter,
                     petLitterIds: litterIds,
-                    generateMysteryBox: shadowRoot.getElementById('cf-generate-mystery-box')?.checked || false
+                    generateMysteryBox: document.getElementById('cf-generate-mystery-box')?.checked || false
                 }
             });
             if (data && data.ok) {
@@ -1760,7 +1766,7 @@ function showFidelidadPanel() {
     };
 
     function renderSuccess(data) {
-        const body = shadowRoot.querySelector('.fidelidad-body');
+        const body = document.querySelector('.fidelidad-body');
         body.innerHTML = `
             <div class="fidelidad-success" style="text-align: center; color: #16a34a; padding: 10px;">
                 <div style="font-size: 40px;">✅</div>
@@ -1789,14 +1795,14 @@ function showFidelidadPanel() {
                 document.body.removeChild(link);
             }, 400);
         }
-        shadowRoot.getElementById('cf-final-close').onclick = () => {
+        document.getElementById('cf-final-close').onclick = () => {
 
             processedAmount = detectedAmount; // Prevenir que reabra solo
             panel.remove();
         };
     }
     function renderPrizes(prizes, userPoints) {
-        const prizesList = shadowRoot.getElementById('cf-prizes-list');
+        const prizesList = document.getElementById('cf-prizes-list');
         if (!prizesList) return;
 
         prizesList.innerHTML = '';
@@ -1811,7 +1817,7 @@ function showFidelidadPanel() {
             return;
         }
 
-        const inputMonto = shadowRoot.getElementById('cf-input-amount');
+        const inputMonto = document.getElementById('cf-input-amount');
         const getAmount = () => Number(inputMonto?.value) || 0;
 
         prizes.forEach(p => {
@@ -1908,7 +1914,7 @@ function showFidelidadPanel() {
     async function redeemPrize(prize) {
         if (!confirm(`¿Canjear "${prize.name}" por ${prize.pointsRequired} puntos para ${selectedClient.name}?`)) return;
 
-        const prizesList = shadowRoot.getElementById('cf-prizes-list');
+        const prizesList = document.getElementById('cf-prizes-list');
         const originalContent = prizesList.innerHTML;
 
         prizesList.innerHTML = '<div style="grid-column: 1 / span 2; text-align: center; padding: 40px; color: #16a34a;">Procesando canje...</div>';
@@ -1921,7 +1927,7 @@ function showFidelidadPanel() {
                 body: {
                     uid: selectedClient.id,
                     prizeId: prize.id,
-                    purchaseAmount: shadowRoot.getElementById('cf-input-amount')?.value ? Number(shadowRoot.getElementById('cf-input-amount').value) : 0
+                    purchaseAmount: document.getElementById('cf-input-amount')?.value ? Number(document.getElementById('cf-input-amount').value) : 0
                 }
             });
             if (data && data.ok) {
@@ -1937,7 +1943,7 @@ function showFidelidadPanel() {
     }
 
     function renderRedemptionSuccess(data, prize) {
-        const body = shadowRoot.querySelector('.fidelidad-body');
+        const body = document.querySelector('.fidelidad-body');
         body.innerHTML = `
             <div class="fidelidad-success" style="text-align: center; color: #16a34a; padding: 10px;">
                 <div style="font-size: 40px;">\u{1F381}</div>
@@ -1950,7 +1956,7 @@ function showFidelidadPanel() {
                 <button class="fidelidad-button" style="background:#f3f4f6; color:#374151; margin-top:15px; border: 1px solid #d1d5db;" id="cf-final-close">CERRAR</button>
             </div>
         `;
-        shadowRoot.getElementById('cf-final-close').onclick = () => {
+        document.getElementById('cf-final-close').onclick = () => {
 
             processedAmount = detectedAmount; // Prevenir que reabra solo
             panel.remove();

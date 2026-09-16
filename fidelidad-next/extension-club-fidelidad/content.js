@@ -1102,12 +1102,12 @@ function showFidelidadPanel() {
         </div>
     `;
 
-    // --- V2.20: Inyectar panel en DOM directo (como v1.98) para compatibilidad con inputs ---
+    // --- V2.23: Inyectar panel en DOM directo (como v1.98) garantizando que el contenedor sea visible ---
     const modalSelectors = ['.modal-content', '.modal-body', '.bootbox', '.ui-dialog-content', '.sky-modal', '[role="dialog"]'];
     let injector = document.body;
     for (let sel of modalSelectors) {
-        const found = document.querySelector(sel);
-        if (found) { injector = found; break; }
+        const visibleModal = Array.from(document.querySelectorAll(sel)).find(el => el.offsetParent !== null);
+        if (visibleModal) { injector = visibleModal; break; }
     }
     injector.appendChild(panel);
 

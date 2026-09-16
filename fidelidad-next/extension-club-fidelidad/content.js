@@ -508,7 +508,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 window._cfStandaloneMode = true;
                 detectedAmount = 0;
                 detectedDiscounts = 0;
-                showFidelidadPanel(); 
+                setTimeout(() => showFidelidadPanel(), 150);
             };
             ui.querySelector('#tab-pending').onclick = () => { activeTab = 'pending'; render(); };
             ui.querySelector('#tab-processed').onclick = () => { activeTab = 'processed'; render(); };

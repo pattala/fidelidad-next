@@ -906,8 +906,7 @@ function detectAmount() {
 
     if (!isNaN(val) && val > 0) {
         if (val === processedAmount) return; // Ya procesado
-        const shadow = getOrCreateShadowRoot();
-        const panelExists = shadow.getElementById('fidelidad-panel');
+        const panelExists = document.getElementById('fidelidad-panel');
         if (val !== detectedAmount || !panelExists) {
             console.log(`💰 [Club Fidelidad] Monto detectado: ${val}`);
             detectedAmount = val;

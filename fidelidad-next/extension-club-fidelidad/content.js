@@ -4,11 +4,26 @@ if (window.location.href.includes('fidelidad-next.vercel.app') || window.locatio
 } else {
     console.log("🚀 [Club Fidelidad] V2.02: Iniciando extensión con aislamiento Shadow DOM y recuperación de foco.");
 
-// Prevenir que el POS robe el foco cuando el usuario está en la extensión (Shadow DOM)
+// --- V2.18: AISLAMIENTO TOTAL de teclado y foco para Shadow DOM ---
+// 1) Interceptar teclas en FASE DE CAPTURA a nivel document (el POS no las ve)
+['keydown', 'keyup', 'keypress'].forEach(evt => {
+    document.addEventListener(evt, (e) => {
+        const host = document.getElementById('cf-shadow-host');
+        if (host && host.shadowRoot) {
+            const active = host.shadowRoot.activeElement;
+            if (active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName)) {
+                e.stopImmediatePropagation();
+            }
+        }
+    }, true); // TRUE = fase de captura
+});
+// 2) Bloquear robo de foco por el POS
 const originalFocus = HTMLElement.prototype.focus;
 HTMLElement.prototype.focus = function() {
-    if (document.activeElement && document.activeElement.id === 'cf-shadow-host') {
-        return; // Ignorar peticiones de foco del POS si la extensión está activa
+    const host = document.getElementById('cf-shadow-host');
+    if (host && host.shadowRoot && host.shadowRoot.activeElement &&
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(host.shadowRoot.activeElement.tagName)) {
+        return;
     }
     return originalFocus.apply(this, arguments);
 };
